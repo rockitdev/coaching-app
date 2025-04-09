@@ -138,35 +138,34 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    const selectedPlayers = Array.from(
-      document.querySelectorAll('.player-checkbox input:checked')
-    ).map(checkbox => parseInt(checkbox.value));
-    
-    if (selectedPlayers.length === 0) {
-      alert('Please select at least one player');
-      return;
-    }
-    
     const timestamp = player.currentTime();
     
     try {
       // Add event to database
       const eventResult = await window.api.addEvent(currentVideoId, eventTypeId, timestamp);
       
-      // Associate players with the event
-      for (const playerId of selectedPlayers) {
-        await window.api.addEventPlayerAssociation(eventResult.id, playerId);
-      }
+      // Get any selected players (now optional)
+      const selectedPlayers = Array.from(
+        document.querySelectorAll('.player-checkbox input:checked')
+      ).map(checkbox => parseInt(checkbox.value));
       
-      // Reload events for this video
-      loadVideoEvents(currentVideoId);
+      // If there are selected players, associate them with the event
+      if (selectedPlayers.length > 0) {
+        for (const playerId of selectedPlayers) {
+          await window.api.addEventPlayerAssociation(eventResult.id, playerId);
+        }
+      }
       
       // Add annotation
       const eventType = eventTypes.find(et => et.id === eventTypeId);
-      const playerNames = selectedPlayers.map(playerId => {
-        const player = players.find(p => p.id === playerId);
-        return player ? player.name : '';
-      }).join(', ');
+      let playerNames = '';
+      
+      if (selectedPlayers.length > 0) {
+        playerNames = selectedPlayers.map(playerId => {
+          const player = players.find(p => p.id === playerId);
+          return player ? player.name : '';
+        }).join(', ');
+      }
       
       if (player.annotationComments) {
         player.annotationComments().addAnnotation({
@@ -175,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             start: timestamp,
             end: timestamp + 0.5
           },
-          commentStr: `${eventType.name}: ${playerNames}`,
+          commentStr: `${eventType.name}${playerNames ? ': ' + playerNames : ''}`,
           meta: {
             datetime: new Date().toISOString(),
             user_id: 1,
@@ -183,6 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       }
+      
+      // Reload events for this video
+      loadVideoEvents(currentVideoId);
     } catch (error) {
       console.error('Error tagging event:', error);
       alert('Failed to tag event: ' + error.message);
@@ -573,39 +575,170 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Helper function to update events list
-  function updateEventsList(events) {
-    eventsList.innerHTML = '';
+  // Event edit modal elements
+const eventEditModal = document.getElementById('event-edit-modal');
+const editEventType = document.getElementById('edit-event-type');
+const editEventTimestamp = document.getElementById('edit-event-timestamp');
+const editPlayerSelection = document.getElementById('edit-player-selection');
+const eventEditSaveBtn = document.getElementById('event-edit-save-btn');
+const eventDeleteBtn = document.getElementById('event-delete-btn');
+const eventEditClose = eventEditModal.querySelector('.close');
+
+// Current event being edited
+let currentEditEventId = null;
+
+// Helper function to update events list with edit buttons
+function updateEventsList(events) {
+  eventsList.innerHTML = '';
+  
+  events.forEach(event => {
+    const div = document.createElement('div');
+    div.className = 'event-item';
+    div.dataset.id = event.id;
+    div.dataset.timestamp = event.timestamp;
     
-    events.forEach(event => {
-      const div = document.createElement('div');
-      div.className = 'event-item';
-      div.dataset.timestamp = event.timestamp;
-      
-      // Format timestamp as MM:SS
-      const minutes = Math.floor(event.timestamp / 60);
-      const seconds = Math.floor(event.timestamp % 60);
-      const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      
-      const timestampSpan = document.createElement('span');
-      timestampSpan.className = 'event-timestamp';
-      timestampSpan.textContent = formattedTime;
-      
-      const typeSpan = document.createElement('span');
-      typeSpan.className = 'event-type';
-      typeSpan.textContent = event.event_type_name;
-      
-      const playersSpan = document.createElement('span');
-      playersSpan.className = 'event-players';
-      playersSpan.textContent = event.players.map(p => p.name).join(', ');
-      
-      div.appendChild(timestampSpan);
-      div.appendChild(typeSpan);
-      div.appendChild(playersSpan);
-      
-      eventsList.appendChild(div);
+    // Format timestamp as MM:SS
+    const minutes = Math.floor(event.timestamp / 60);
+    const seconds = Math.floor(event.timestamp % 60);
+    const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'event-timestamp';
+    timestampSpan.textContent = formattedTime;
+    
+    const typeSpan = document.createElement('span');
+    typeSpan.className = 'event-type';
+    typeSpan.textContent = event.event_type_name;
+    
+    const playersSpan = document.createElement('span');
+    playersSpan.className = 'event-players';
+    playersSpan.textContent = event.players.map(p => p.name).join(', ');
+    
+    // Add edit button
+    const editBtn = document.createElement('button');
+    editBtn.className = 'event-edit-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from triggering event selection
+      openEventEditModal(event.id);
     });
+    
+    div.appendChild(timestampSpan);
+    div.appendChild(typeSpan);
+    div.appendChild(playersSpan);
+    div.appendChild(editBtn);
+    
+    eventsList.appendChild(div);
+  });
+}
+
+// Function to open event edit modal
+async function openEventEditModal(eventId) {
+  try {
+    // Get full event details
+    const event = await window.api.getEvent(eventId);
+    currentEditEventId = eventId;
+    
+    // Update modal with event info
+    editEventType.textContent = event.event_type_name;
+    
+    // Format timestamp as MM:SS
+    const minutes = Math.floor(event.timestamp / 60);
+    const seconds = Math.floor(event.timestamp % 60);
+    const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    editEventTimestamp.textContent = formattedTime;
+    
+    // Populate player checkboxes
+    editPlayerSelection.innerHTML = '';
+    
+    // Create checkboxes for all players
+    players.forEach(player => {
+      const container = document.createElement('div');
+      container.className = 'player-checkbox';
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `edit-player-${player.id}`;
+      checkbox.value = player.id;
+      
+      // Check if this player is associated with the event
+      const isAssociated = event.players.some(p => p.id === player.id);
+      checkbox.checked = isAssociated;
+      
+      const label = document.createElement('label');
+      label.htmlFor = `edit-player-${player.id}`;
+      label.textContent = player.name;
+      
+      container.appendChild(checkbox);
+      container.appendChild(label);
+      editPlayerSelection.appendChild(container);
+    });
+    
+    // Show the modal
+    eventEditModal.style.display = 'block';
+  } catch (error) {
+    console.error('Error loading event details:', error);
+    alert('Failed to load event details: ' + error.message);
   }
+}
+
+// Save event changes
+async function saveEventChanges() {
+  if (!currentEditEventId) return;
+  
+  try {
+    // Get selected players
+    const selectedPlayerIds = Array.from(
+      editPlayerSelection.querySelectorAll('input[type="checkbox"]:checked')
+    ).map(checkbox => parseInt(checkbox.value));
+    
+    // Update player associations
+    await window.api.updateEventPlayers(currentEditEventId, selectedPlayerIds);
+    
+    // Reload events for this video
+    loadVideoEvents(currentVideoId);
+    
+    // Close the modal
+    eventEditModal.style.display = 'none';
+  } catch (error) {
+    console.error('Error updating event:', error);
+    alert('Failed to update event: ' + error.message);
+  }
+}
+
+// Delete event
+async function deleteEvent() {
+  if (!currentEditEventId) return;
+  
+  if (confirm('Are you sure you want to delete this event?')) {
+    try {
+      await window.api.deleteEvent(currentEditEventId);
+      
+      // Reload events for this video
+      loadVideoEvents(currentVideoId);
+      
+      // Close the modal
+      eventEditModal.style.display = 'none';
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Failed to delete event: ' + error.message);
+    }
+  }
+}
+
+// Event listeners for the edit modal
+eventEditSaveBtn.addEventListener('click', saveEventChanges);
+eventDeleteBtn.addEventListener('click', deleteEvent);
+eventEditClose.addEventListener('click', () => {
+  eventEditModal.style.display = 'none';
+});
+
+// Modal click outside
+window.addEventListener('click', event => {
+  if (event.target === eventEditModal) {
+    eventEditModal.style.display = 'none';
+  }
+});
 
   // Helper function to load events for a player
   async function loadPlayerEvents(playerId) {
