@@ -1,0 +1,45 @@
+{
+  "name": "hockey-coach-app",
+  "version": "1.0.0",
+  "description": "Hockey Coach Video Analysis Application",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "hockey",
+    "coach",
+    "video",
+    "analysis"
+  ],
+  "author": "",
+  "license": "ISC",
+  "build": {
+    "appId": "com.hockeycoach.app",
+    "productName": "Hockey Coach App",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.sports"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "@contently/videojs-annotation-comments": "^2.0.1",
+    "sqlite3": "^5.1.7",
+    "video.js": "^7.21.7"
+  }
+}
