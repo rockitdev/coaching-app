@@ -383,6 +383,135 @@ function setupIpcHandlers() {
       });
     });
   });
+
+  ipcMain.handle('db-get-event', (event, eventId) => {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT e.id, e.timestamp, e.event_type_id, e.video_id, et.name as event_type_name,
+        GROUP_CONCAT(p.id || ':' || p.name, ';') as players
+        FROM events e
+        JOIN event_types et ON e.event_type_id = et.id
+        LEFT JOIN event_player_associations epa ON e.id = epa.event_id
+        LEFT JOIN players p ON epa.player_id = p.id
+        WHERE e.id = ?
+        GROUP BY e.id
+      `;
+      
+      db.get(query, [eventId], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        // Parse players string into array of objects
+        const players = [];
+        if (row.players) {
+          row.players.split(';').forEach(playerStr => {
+            if (playerStr) {
+              const [id, name] = playerStr.split(':');
+              players.push({ id: parseInt(id), name });
+            }
+          });
+        }
+        
+        const result = {
+          id: row.id,
+          timestamp: row.timestamp,
+          event_type_id: row.event_type_id,
+          event_type_name: row.event_type_name,
+          video_id: row.video_id,
+          players
+        };
+        
+        resolve(result);
+      });
+    });
+  });
+  
+  // Update player associations for an event
+  ipcMain.handle('db-update-event-players', (event, eventId, playerIds) => {
+    return new Promise((resolve, reject) => {
+      // Begin transaction
+      db.run('BEGIN TRANSACTION', (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        // First delete all existing player associations
+        db.run('DELETE FROM event_player_associations WHERE event_id = ?', [eventId], (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            reject(err);
+            return;
+          }
+          
+          // If no players to add, just commit the transaction
+          if (!playerIds || playerIds.length === 0) {
+            db.run('COMMIT', (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                reject(err);
+                return;
+              }
+              resolve({ eventId, updated: true });
+            });
+            return;
+          }
+          
+          // Prepare statement for adding new associations
+          const stmt = db.prepare('INSERT INTO event_player_associations (event_id, player_id) VALUES (?, ?)');
+          
+          let completed = 0;
+          let error = null;
+          
+          // Add each player association
+          playerIds.forEach(playerId => {
+            stmt.run(eventId, playerId, (err) => {
+              if (err && !error) {
+                error = err;
+              }
+              
+              completed++;
+              
+              // When all inserts are done
+              if (completed === playerIds.length) {
+                stmt.finalize();
+                
+                if (error) {
+                  db.run('ROLLBACK');
+                  reject(error);
+                  return;
+                }
+                
+                db.run('COMMIT', (err) => {
+                  if (err) {
+                    db.run('ROLLBACK');
+                    reject(err);
+                    return;
+                  }
+                  resolve({ eventId, updated: true });
+                });
+              }
+            });
+          });
+        });
+      });
+    });
+  });
+  
+  // Delete an event
+  ipcMain.handle('db-delete-event', (event, eventId) => {
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM events WHERE id = ?', [eventId], function(err) {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve({ eventId, deleted: true, changes: this.changes });
+      });
+    });
+  });
 }
 
 module.exports = {

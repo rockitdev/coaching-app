@@ -82,15 +82,20 @@
   </div>
   
   <!-- Modal for adding players or custom events -->
-  <div id="modal" class="modal">
+  <div id="event-edit-modal" class="modal">
     <div class="modal-content">
       <span class="close">&times;</span>
-      <h2 id="modal-title">Add New Item</h2>
-      <div class="form-group">
-        <label for="modal-input">Name:</label>
-        <input type="text" id="modal-input" class="text-input">
+      <h2>Edit Event</h2>
+      <div class="event-edit-info">
+        <p><strong>Event Type:</strong> <span id="edit-event-type"></span></p>
+        <p><strong>Timestamp:</strong> <span id="edit-event-timestamp"></span></p>
       </div>
-      <button id="modal-save-btn" class="btn btn-primary">Save</button>
+      <div class="form-group">
+        <label>Players:</label>
+        <div id="edit-player-selection" class="player-selection"></div>
+      </div>
+      <button id="event-edit-save-btn" class="btn btn-primary">Save Changes</button>
+      <button id="event-delete-btn" class="btn btn-danger">Delete Event</button>
     </div>
   </div>
   

@@ -411,3 +411,40 @@
     margin: 0;
     padding-left: 1.5rem;
   }
+
+  .event-edit-info {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: #f5f5f5;
+    border-radius: 3px;
+  }
+  
+  .event-item {
+    position: relative;
+  }
+  
+  .event-item .event-edit-btn {
+    display: none;
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    padding: 2px 5px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  
+  .event-item:hover .event-edit-btn {
+    display: block;
+  }
+  
+  .modal-content .btn {
+    margin-right: 0.5rem;
+  }
+  
+  .event-edit-info p {
+    margin: 0.25rem 0;
+  }

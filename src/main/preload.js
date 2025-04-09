@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('api', {
   addEventPlayerAssociation: (eventId, playerId) => 
     ipcRenderer.invoke('db-add-event-player-association', eventId, playerId),
   getVideoEvents: (videoId) => ipcRenderer.invoke('db-get-video-events', videoId),
+  getEvent: (eventId) => ipcRenderer.invoke('db-get-event', eventId),
+  updateEventPlayers: (eventId, playerIds) => 
+    ipcRenderer.invoke('db-update-event-players', eventId, playerIds),
+  deleteEvent: (eventId) => ipcRenderer.invoke('db-delete-event', eventId),
   
   // Player-related database operations
   getPlayers: () => ipcRenderer.invoke('db-get-players'),
