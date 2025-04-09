@@ -350,3 +350,64 @@
   .vac-marker:hover {
     background-color: #2980b9 !important;
   }
+
+  .event-type-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .event-btn {
+    padding: 0.5rem 1rem;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.9rem;
+    min-width: 80px;
+  }
+  
+  .event-btn:hover {
+    background-color: #2980b9;
+  }
+  
+  .event-btn.active {
+    background-color: #1a5276;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  }
+  
+  .event-btn.custom {
+    background-color: #9b59b6;
+  }
+  
+  .event-btn.custom:hover {
+    background-color: #8e44ad;
+  }
+  
+  .event-btn .shortcut {
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+    opacity: 0.8;
+  }
+  
+  .keyboard-shortcuts {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 3px;
+    font-size: 0.8rem;
+  }
+  
+  .keyboard-shortcuts h4 {
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .keyboard-shortcuts ul {
+    margin: 0;
+    padding-left: 1.5rem;
+  }

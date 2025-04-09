@@ -1,4 +1,5 @@
-// Wait for DOM to load
+// Modified parts of renderer.js to handle event buttons and keyboard shortcuts
+
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize VideoJS player
   const player = videojs('hockey-video', {
@@ -49,14 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabContents = document.querySelectorAll('.tab-content');
   const loadVideoBtn = document.getElementById('load-video-btn');
   const videoInfo = document.getElementById('video-info');
-  const eventTypeSelect = document.getElementById('event-type');
+  const eventTypeButtons = document.getElementById('event-type-buttons');
   const playerSelection = document.getElementById('player-selection');
-  const tagEventBtn = document.getElementById('tag-event-btn');
+  const addCustomEventBtn = document.getElementById('add-custom-event-btn');
   const eventsList = document.getElementById('events-list');
   const playerList = document.getElementById('player-list');
   const playerEvents = document.getElementById('player-events');
   const selectedPlayerName = document.getElementById('selected-player-name');
-  const addCustomEventBtn = document.getElementById('add-custom-event-btn');
   const addPlayerBtn = document.getElementById('add-player-btn');
 
   // Modal elements
@@ -72,6 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let players = [];
   let eventTypes = [];
   let selectedPlayerId = null;
+  let selectedEventTypeId = null;
+
+  // Keyboard shortcut mappings
+  const shortcutKeys = [
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'
+  ];
 
   // Tab navigation
   tabButtons.forEach(button => {
@@ -120,13 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Handle tagging an event
-  tagEventBtn.addEventListener('click', async () => {
+  async function tagEvent(eventTypeId) {
     if (!currentVideoId) {
       alert('Please load a video first');
       return;
     }
     
-    const eventTypeId = parseInt(eventTypeSelect.value);
     if (isNaN(eventTypeId)) {
       alert('Please select an event type');
       return;
@@ -180,6 +186,53 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       console.error('Error tagging event:', error);
       alert('Failed to tag event: ' + error.message);
+    }
+  }
+
+  // Handle event button click
+  function handleEventButtonClick(eventTypeId) {
+    // Update selected event type
+    selectedEventTypeId = eventTypeId;
+    
+    // Update UI to show active event
+    const eventButtons = document.querySelectorAll('.event-btn');
+    eventButtons.forEach(btn => {
+      if (parseInt(btn.dataset.id) === eventTypeId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    // Tag the event
+    tagEvent(eventTypeId);
+  }
+
+  // Handle keyboard shortcuts
+  document.addEventListener('keydown', (event) => {
+    // Only process if video tab is active and a video is loaded
+    const videoTab = document.getElementById('video-review');
+    if (!videoTab.classList.contains('active') || !currentVideoId) {
+      return;
+    }
+    
+    // Convert key to uppercase for consistency
+    const key = event.key.toUpperCase();
+    
+    // Find the event type that matches this shortcut
+    const shortcutIndex = shortcutKeys.indexOf(key);
+    if (shortcutIndex !== -1 && shortcutIndex < eventTypes.length) {
+      const eventTypeId = eventTypes[shortcutIndex].id;
+      handleEventButtonClick(eventTypeId);
+      
+      // Flash the button to provide visual feedback
+      const button = document.querySelector(`.event-btn[data-id="${eventTypeId}"]`);
+      if (button) {
+        button.classList.add('active');
+        setTimeout(() => {
+          button.classList.remove('active');
+        }, 200);
+      }
     }
   });
 
@@ -312,27 +365,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Helper function to load event types
+  // Helper function to load event types and create buttons
   async function loadEventTypes() {
     try {
       eventTypes = await window.api.getEventTypes();
       
-      // Clear existing options
-      eventTypeSelect.innerHTML = '';
+      // Clear existing buttons
+      eventTypeButtons.innerHTML = '';
       
-      // Add default option
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'Select an event type';
-      eventTypeSelect.appendChild(defaultOption);
-      
-      // Add event types
-      eventTypes.forEach(eventType => {
-        const option = document.createElement('option');
-        option.value = eventType.id;
-        option.textContent = eventType.name;
-        eventTypeSelect.appendChild(option);
+      // Create event type buttons with keyboard shortcuts
+      eventTypes.forEach((eventType, index) => {
+        const button = document.createElement('button');
+        button.className = `event-btn ${eventType.is_custom ? 'custom' : ''}`;
+        button.dataset.id = eventType.id;
+        
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = eventType.name;
+        
+        const shortcut = document.createElement('span');
+        shortcut.className = 'shortcut';
+        
+        // Assign a keyboard shortcut if available
+        if (index < shortcutKeys.length) {
+          shortcut.textContent = `[${shortcutKeys[index]}]`;
+          button.title = `Press ${shortcutKeys[index]} to tag (${eventType.name})`;
+        }
+        
+        button.appendChild(name);
+        button.appendChild(shortcut);
+        
+        button.addEventListener('click', () => {
+          handleEventButtonClick(eventType.id);
+        });
+        
+        eventTypeButtons.appendChild(button);
       });
+      
+      // Add keyboard shortcuts help
+      const helpDiv = document.createElement('div');
+      helpDiv.className = 'keyboard-shortcuts';
+      helpDiv.innerHTML = `
+        <h4>Keyboard Shortcuts</h4>
+        <p>Press the key shown in brackets to quickly tag an event.</p>
+      `;
+      eventTypeButtons.appendChild(helpDiv);
+      
     } catch (error) {
       console.error('Error loading event types:', error);
       alert('Failed to load event types: ' + error.message);
@@ -474,8 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerNames = event.players.map(p => p.name).join(', ');
         
         if (player.annotationComments) {
-          player// Continuing from previous code...
-          .annotationComments().addAnnotation({
+          player.annotationComments().addAnnotation({
             id: event.id,
             range: {
               start: event.timestamp,
