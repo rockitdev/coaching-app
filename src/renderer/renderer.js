@@ -231,6 +231,21 @@ document.addEventListener('DOMContentLoaded', () => {
   async function commitShot(result) {
     if (!stagedShot) return;
     const { timestamp, net } = stagedShot;
+
+    // Smoke guard: sanity-check the staged values before writing to DB
+    if (typeof timestamp !== 'number' || isNaN(timestamp) || timestamp < 0) {
+      console.error('commitShot: invalid staged timestamp', timestamp);
+      stagedShot = null;
+      resultPicker.style.display = 'none';
+      return;
+    }
+    if (!net || (net !== 'own' && net !== 'opponent')) {
+      console.error('commitShot: invalid staged net value', net);
+      stagedShot = null;
+      resultPicker.style.display = 'none';
+      return;
+    }
+
     stagedShot = null;
     resultPicker.style.display = 'none';
 
@@ -484,8 +499,13 @@ document.addEventListener('DOMContentLoaded', () => {
       helpDiv.innerHTML = `
         <h4>Keyboard Shortcuts</h4>
         <p>Numbers/letters in brackets tag that event type.<br>
-        <strong>[S]</strong> = tag Shot Against · then <strong>[A]</strong>ave / <strong>[D]</strong>oal / <strong>[F]</strong>iss / <strong>[G]</strong>ebound<br>
-        <strong>[J]</strong> = prev shot · <strong>[K]</strong> = next shot</p>
+        <strong>[S]</strong> = tag Shot Against &mdash; then pick result:<br>
+        Save <strong>[A]</strong> &nbsp;&middot;&nbsp;
+        Goal <strong>[D]</strong> &nbsp;&middot;&nbsp;
+        Miss <strong>[F]</strong> &nbsp;&middot;&nbsp;
+        Rebound <strong>[G]</strong> &nbsp;&middot;&nbsp;
+        Cancel <strong>[Esc]</strong><br>
+        <strong>[J]</strong> = prev shot &nbsp;&middot;&nbsp; <strong>[K]</strong> = next shot</p>
       `;
       eventTypeButtons.appendChild(helpDiv);
     } catch (error) {
@@ -747,6 +767,14 @@ document.addEventListener('DOMContentLoaded', () => {
   async function openEventEditModal(eventId) {
     try {
       const ev = await window.api.getEvent(eventId);
+
+      // Guard: event was deleted between render and click
+      if (!ev) {
+        console.warn('Event not found (id=%s); reloading event list', eventId);
+        if (currentVideoId) await loadVideoEvents(currentVideoId);
+        return;
+      }
+
       currentEditEventId = eventId;
 
       editEventType.textContent     = ev.event_type_name;

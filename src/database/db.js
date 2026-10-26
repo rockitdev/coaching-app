@@ -70,17 +70,36 @@ function runMigrations() {
         return resolve();
       }
 
-      // Run migrations sequentially
+      // Run migrations sequentially, each wrapped in a transaction so a
+      // partial failure cannot leave the schema half-applied.
       pending.reduce((chain, migration) => {
         return chain.then(() => {
           console.log(`Running migration to v${migration.version}…`);
-          return migration.up(db).then(() => {
-            return new Promise((res, rej) => {
-              db.run(`PRAGMA user_version = ${migration.version}`, (err) => {
-                if (err) return rej(err);
-                console.log(`Schema now at v${migration.version}`);
-                res();
-              });
+          return new Promise((res, rej) => {
+            db.run('BEGIN TRANSACTION', (err) => {
+              if (err) return rej(err);
+              migration.up(db)
+                .then(() => {
+                  // user_version is part of the transaction in SQLite
+                  db.run(`PRAGMA user_version = ${migration.version}`, (err) => {
+                    if (err) {
+                      db.run('ROLLBACK');
+                      return rej(err);
+                    }
+                    db.run('COMMIT', (err) => {
+                      if (err) {
+                        db.run('ROLLBACK');
+                        return rej(err);
+                      }
+                      console.log(`Schema now at v${migration.version}`);
+                      res();
+                    });
+                  });
+                })
+                .catch(err => {
+                  db.run('ROLLBACK');
+                  rej(err);
+                });
             });
           });
         });
@@ -509,6 +528,12 @@ function setupIpcHandlers() {
       db.get(query, [eventId], (err, row) => {
         if (err) {
           reject(err);
+          return;
+        }
+
+        // Guard: event not found — resolve with null instead of crashing
+        if (!row) {
+          resolve(null);
           return;
         }
 
