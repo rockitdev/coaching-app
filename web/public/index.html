@@ -41,12 +41,42 @@
         </div>
 
         <div class="video-player-container">
-          <video id="hockey-video" class="video-js vjs-default-skin" controls preload="auto">
+          <video id="hockey-video" class="video-js vjs-default-skin" controls preload="auto" playsinline>
             <p class="vjs-no-js">
               Please enable JavaScript and use a browser that
               <a href="https://videojs.com/html5-video-support/" target="_blank" rel="noreferrer">supports HTML5 video</a>.
             </p>
           </video>
+        </div>
+
+        <!-- Film review controls (hidden until a video loads, touch-first) -->
+        <div id="film-controls" class="film-controls" style="display:none">
+          <!-- Row 1: event nav + skip + frame step + replay -->
+          <div class="film-row film-row-main">
+            <button id="btn-prev-event"   class="film-btn film-btn-nav"    title="Previous tagged event [[]">&#9664;&#9664; Prev</button>
+            <button id="btn-skip-back-10" class="film-btn film-btn-skip"   title="Back 10s (Shift+Left)">&minus;10s</button>
+            <button id="btn-skip-back-5"  class="film-btn film-btn-skip"   title="Back 5s (Left)">&minus;5s</button>
+            <button id="btn-frame-back"   class="film-btn film-btn-frame"  title="One frame back (,)">&#9664; 1f</button>
+            <button id="btn-play-pause"   class="film-btn film-btn-play"   title="Play / Pause (Space)">&#9654;</button>
+            <button id="btn-frame-fwd"    class="film-btn film-btn-frame"  title="One frame forward (.)">1f &#9654;</button>
+            <button id="btn-skip-fwd-5"   class="film-btn film-btn-skip"   title="Forward 5s (Right)">+5s</button>
+            <button id="btn-skip-fwd-10"  class="film-btn film-btn-skip"   title="Forward 10s (Shift+Right)">+10s</button>
+            <button id="btn-next-event"   class="film-btn film-btn-nav"    title="Next tagged event []]">Next &#9654;&#9654;</button>
+          </div>
+          <!-- Row 2: replay, time display, speed -->
+          <div class="film-row film-row-secondary">
+            <button id="btn-replay-10" class="film-btn film-btn-replay" title="Replay last 10 seconds">&#8635; Replay 10s</button>
+            <span id="film-time-display" class="film-time">00:00 / 00:00</span>
+            <div class="film-speed-group">
+              <span class="film-speed-label">Speed:</span>
+              <button class="film-speed-btn" data-rate="0.25">0.25x</button>
+              <button class="film-speed-btn" data-rate="0.5">0.5x</button>
+              <button class="film-speed-btn" data-rate="0.75">0.75x</button>
+              <button class="film-speed-btn active" data-rate="1">1x</button>
+              <button class="film-speed-btn" data-rate="1.5">1.5x</button>
+              <button class="film-speed-btn" data-rate="2">2x</button>
+            </div>
+          </div>
         </div>
       </div>
 

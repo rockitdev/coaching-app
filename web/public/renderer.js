@@ -48,12 +48,20 @@ function jsonH() { return { 'Content-Type': 'application/json' }; }
 // Main app logic -- runs when the DOM is ready
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Video.js
+  // Film-review constants
+  const FRAME_RATE = 30;          // assumed FPS for frame stepping
+  const FRAME_SEC  = 1 / FRAME_RATE;
+
+  // Initialize Video.js with playback rate selector in the native control bar
   const player = videojs('hockey-video', {
     controls: true,
     autoplay: false,
     preload: 'auto',
     fluid: true,
+    playbackRates: [0.25, 0.5, 0.75, 1, 1.5, 2],
+    controlBar: {
+      playbackRateMenuButton: true,
+    },
   });
 
   // Try to init the annotation plugin (optional, graceful fallback)
@@ -163,11 +171,83 @@ document.addEventListener('DOMContentLoaded', () => {
   let competitions = [];
   let selectedPlayerId = null;
   let currentEditEventId = null;
+  let currentVideoEvents = [];   // events for the loaded video (for prev/next nav)
 
   const shortcutKeys = [
     '1','2','3','4','5','6','7','8','9','0',
     'Q','W','E','R','T','Y','U','I','O','P',
   ];
+
+  // -------------------------------------------------------------------------
+  // Film controls setup
+  // -------------------------------------------------------------------------
+  const filmControls     = document.getElementById('film-controls');
+  const filmTimeDisplay  = document.getElementById('film-time-display');
+  const playPauseBtn     = document.getElementById('btn-play-pause');
+  const speedBtns        = document.querySelectorAll('.film-speed-btn');
+
+  // Helper: clamp time into valid range
+  function clampTime(t) {
+    return Math.max(0, Math.min(t, player.duration() || 0));
+  }
+
+  // Play/pause button label sync
+  function syncPlayPauseBtn() {
+    playPauseBtn.textContent = player.paused() ? '▶' : '⏸';
+  }
+  player.on('play',  syncPlayPauseBtn);
+  player.on('pause', syncPlayPauseBtn);
+
+  // Time display update
+  player.on('timeupdate', () => {
+    const cur = player.currentTime() || 0;
+    const dur = player.duration()    || 0;
+    filmTimeDisplay.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+  });
+  player.on('loadedmetadata', () => {
+    const dur = player.duration() || 0;
+    filmTimeDisplay.textContent = `00:00 / ${formatTime(dur)}`;
+  });
+
+  // Speed buttons
+  speedBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rate = parseFloat(btn.dataset.rate);
+      player.playbackRate(rate);
+      speedBtns.forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+  // Sync speed buttons when rate changes externally (e.g. via video.js control bar)
+  player.on('ratechange', () => {
+    const rate = player.playbackRate();
+    speedBtns.forEach(b => b.classList.toggle('active', parseFloat(b.dataset.rate) === rate));
+  });
+
+  // Film control buttons
+  playPauseBtn.addEventListener('click', () => {
+    if (player.paused()) player.play(); else player.pause();
+  });
+
+  document.getElementById('btn-skip-back-10').addEventListener('click',  () => player.currentTime(clampTime(player.currentTime() - 10)));
+  document.getElementById('btn-skip-back-5').addEventListener('click',   () => player.currentTime(clampTime(player.currentTime() - 5)));
+  document.getElementById('btn-frame-back').addEventListener('click',    () => { player.pause(); player.currentTime(clampTime(player.currentTime() - FRAME_SEC)); });
+  document.getElementById('btn-frame-fwd').addEventListener('click',     () => { player.pause(); player.currentTime(clampTime(player.currentTime() + FRAME_SEC)); });
+  document.getElementById('btn-skip-fwd-5').addEventListener('click',    () => player.currentTime(clampTime(player.currentTime() + 5)));
+  document.getElementById('btn-skip-fwd-10').addEventListener('click',   () => player.currentTime(clampTime(player.currentTime() + 10)));
+  document.getElementById('btn-replay-10').addEventListener('click',     () => { player.currentTime(clampTime(player.currentTime() - 10)); player.play(); });
+
+  document.getElementById('btn-prev-event').addEventListener('click', () => {
+    const t = player.currentTime();
+    // Find the last event strictly before current time (with a tiny buffer so we can step back from exactly on one)
+    const prev = [...currentVideoEvents].reverse().find(ev => ev.timestamp < t - 0.1);
+    if (prev) player.currentTime(prev.timestamp);
+  });
+
+  document.getElementById('btn-next-event').addEventListener('click', () => {
+    const t = player.currentTime();
+    const next = currentVideoEvents.find(ev => ev.timestamp > t + 0.1);
+    if (next) player.currentTime(next.timestamp);
+  });
 
   // -------------------------------------------------------------------------
   // Tab navigation
@@ -302,6 +382,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayTitle = displayName || filePath.replace(/^\d+_/, '');
     updateGameInfoBar(displayTitle, meta);
     player.src({ src: `/videos/${filePath}`, type: 'video/mp4' });
+    // Show film controls now that a video is loaded
+    filmControls.style.display = '';
+    // Reset speed display to 1x
+    speedBtns.forEach(b => b.classList.toggle('active', b.dataset.rate === '1'));
     loadVideoEvents(videoId);
   }
 
@@ -521,12 +605,66 @@ document.addEventListener('DOMContentLoaded', () => {
     tagEvent(eventTypeId);
   }
 
-  // Keyboard shortcuts (same keys as original: 1-0, Q-P)
+  // Keyboard shortcuts
+  // Primary: 1-0, Q-P = tag events (unchanged)
+  // Secondary (film review, only when no input focused):
+  //   Space = play/pause
+  //   Left / Right = -5s / +5s
+  //   Shift+Left / Shift+Right = -10s / +10s
+  //   , / . = frame back / frame fwd
+  //   [ / ] = prev / next event
   document.addEventListener('keydown', e => {
     const videoTab = document.getElementById('video-review');
-    if (!videoTab.classList.contains('active') || !currentVideoId) return;
+    if (!videoTab.classList.contains('active')) return;
+    // Never fire shortcuts while the user is typing
     if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    if (e.target.isContentEditable) return;
 
+    // Film-control keys (no modifier expected for most; checked first so they
+    // take priority over any accidental overlap check below)
+    if (currentVideoId) {
+      switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          if (player.paused()) player.play(); else player.pause();
+          return;
+        case 'ArrowLeft':
+          e.preventDefault();
+          player.currentTime(clampTime(player.currentTime() - (e.shiftKey ? 10 : 5)));
+          return;
+        case 'ArrowRight':
+          e.preventDefault();
+          player.currentTime(clampTime(player.currentTime() + (e.shiftKey ? 10 : 5)));
+          return;
+        case ',':
+          e.preventDefault();
+          player.pause();
+          player.currentTime(clampTime(player.currentTime() - FRAME_SEC));
+          return;
+        case '.':
+          e.preventDefault();
+          player.pause();
+          player.currentTime(clampTime(player.currentTime() + FRAME_SEC));
+          return;
+        case '[': {
+          e.preventDefault();
+          const t = player.currentTime();
+          const prev = [...currentVideoEvents].reverse().find(ev => ev.timestamp < t - 0.1);
+          if (prev) player.currentTime(prev.timestamp);
+          return;
+        }
+        case ']': {
+          e.preventDefault();
+          const t = player.currentTime();
+          const next = currentVideoEvents.find(ev => ev.timestamp > t + 0.1);
+          if (next) player.currentTime(next.timestamp);
+          return;
+        }
+      }
+    }
+
+    // Event-tagging shortcuts (1-0, Q-P) -- only when video is loaded
+    if (!currentVideoId) return;
     const key = e.key.toUpperCase();
     const idx = shortcutKeys.indexOf(key);
     if (idx !== -1 && idx < eventTypes.length) {
@@ -829,6 +967,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateEventsList(events) {
+    // Keep a sorted copy for prev/next event navigation
+    currentVideoEvents = [...events].sort((a, b) => a.timestamp - b.timestamp);
     eventsListEl.innerHTML = '';
     events.forEach(ev => {
       const div = document.createElement('div');
