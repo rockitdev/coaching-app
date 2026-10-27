@@ -561,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     openVideo(videoId, filePath, displayName, {
       game_date: item.dataset.gameDate || null,
-      competition_id: null,
+      competition_id: item.dataset.competitionId ? parseInt(item.dataset.competitionId, 10) : null,
       competition_name: item.dataset.competitionName || null,
     });
     player.one('loadedmetadata', () => {
@@ -903,6 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.dataset.filePath       = ev.file_path;
         item.dataset.displayName    = ev.file_path.replace(/^\d+_/, '');
         item.dataset.gameDate       = ev.game_date || '';
+        item.dataset.competitionId  = ev.competition_id || '';
         item.dataset.competitionName = ev.competition_name || '';
 
         const details = document.createElement('div');
