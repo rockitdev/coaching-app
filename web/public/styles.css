@@ -503,3 +503,21 @@ body {
 /* Annotation plugin */
 .vac-marker { background-color: #3498db !important; }
 .vac-marker:hover { background-color: #2980b9 !important; }
+
+/* Game info bar */
+.game-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 0.75rem;
+  background-color: #eaf0fb;
+  border: 1px solid #c6d8f5;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.game-info-piece {
+  color: #1a5276;
+  font-weight: 500;
+}
