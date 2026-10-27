@@ -448,3 +448,185 @@
   .event-edit-info p {
     margin: 0.25rem 0;
   }
+
+/* ─── Goalie stat line ───────────────────────────────────────────────────── */
+.goalie-line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #1a5276;
+  color: white;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+}
+
+.goalie-line-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.gl-stat {
+  padding: 0.2rem 0.6rem;
+  background: rgba(255,255,255,0.12);
+  border-radius: 3px;
+}
+
+.sv-pct {
+  background: rgba(39, 174, 96, 0.3);
+}
+
+.goals-against {
+  background: rgba(231, 76, 60, 0.3);
+}
+
+/* ─── Video player wrapper + shot markers ────────────────────────────────── */
+.video-player-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Shot marker overlay — sized to match the VJS progress bar horizontal strip.
+   VJS 7 progress control sits at the bottom of the player (bottom ~38px).
+   We position our overlay there. */
+.shot-markers-container {
+  position: absolute;
+  bottom: 38px;   /* sits just above the VJS control bar bottom */
+  left: 0;
+  width: 100%;
+  height: 6px;
+  pointer-events: none; /* let clicks through to VJS by default */
+  z-index: 10;
+}
+
+.shot-marker {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  pointer-events: all;
+  transition: transform 0.1s;
+}
+
+.shot-marker:hover {
+  transform: translateX(-50%) scale(1.8);
+}
+
+.marker-save    { background-color: #27ae60; }
+.marker-goal    { background-color: #e74c3c; }
+.marker-miss    { background-color: #95a5a6; }
+.marker-rebound { background-color: #f39c12; }
+
+/* ─── Shot navigation ────────────────────────────────────────────────────── */
+.shot-nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* ─── Shot Against panel ─────────────────────────────────────────────────── */
+.shot-against-panel {
+  background: #eaf4fb;
+  border: 1px solid #aed6f1;
+  border-radius: 5px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shot-against-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.shortcut-hint {
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.net-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.result-picker {
+  background: #fff;
+  border: 1px solid #aed6f1;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.result-picker-prompt {
+  font-size: 0.9rem;
+}
+
+.result-btns {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.result-btn {
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: white;
+}
+
+.save-btn    { background-color: #27ae60; }
+.goal-btn    { background-color: #e74c3c; }
+.miss-btn    { background-color: #7f8c8d; }
+.rebound-btn { background-color: #f39c12; }
+.cancel-btn  { background-color: #95a5a6; }
+
+.result-btn:hover { opacity: 0.85; }
+
+/* ─── Shot result badges (in events list) ────────────────────────────────── */
+.shot-result-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+  vertical-align: middle;
+}
+
+.result-save    { background-color: #27ae60; }
+.result-goal    { background-color: #e74c3c; }
+.result-miss    { background-color: #7f8c8d; }
+.result-rebound { background-color: #f39c12; }
+
+/* ─── Shots-only filter toggle ────────────────────────────────────────────── */
+.tagged-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.shots-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}

@@ -6,10 +6,9 @@
   <title>Hockey Coach App</title>
   <!-- Video.js CSS -->
   <link href="../../node_modules/video.js/dist/video-js.min.css" rel="stylesheet">
-  <!-- Video.js Annotation Comments CSS -->
-  <!-- Add these lines in the <head> section -->
-    <link href="../../node_modules/@contently/videojs-annotation-comments/build/css/annotations.css" rel="stylesheet">
-    <script src="../../node_modules/@contently/videojs-annotation-comments/build/videojs-annotation-comments.cjs.js"></script> 
+  <!-- Video.js Annotation Comments CSS (legacy — kept for existing annotations) -->
+  <link href="../../node_modules/@contently/videojs-annotation-comments/build/css/annotations.css" rel="stylesheet">
+  <script src="../../node_modules/@contently/videojs-annotation-comments/build/videojs-annotation-comments.cjs.js"></script>
   <!-- App Styles -->
   <link href="./styles.css" rel="stylesheet">
 </head>
@@ -22,7 +21,7 @@
         <button class="tab-button" data-tab="player-profiles">Player Profiles</button>
       </div>
     </header>
-    
+
     <main class="app-content">
       <!-- Video Review Tab -->
       <section id="video-review" class="tab-content active">
@@ -31,39 +30,88 @@
             <button id="load-video-btn" class="btn">Load Video</button>
             <div id="video-info" class="video-info"></div>
           </div>
-          
-          <div class="video-player-container">
-            <video id="hockey-video" class="video-js vjs-default-skin" controls preload="auto">
-              <p class="vjs-no-js">
-                To view this video please enable JavaScript, and consider upgrading to a
-                web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
-              </p>
-            </video>
+
+          <!-- ── Goalie Stat Line ───────────────────────────────────────── -->
+          <div id="goalie-line" class="goalie-line" style="display:none">
+            <span class="goalie-line-label">GOALIE LINE</span>
+            <span id="gl-shots" class="gl-stat">SA: —</span>
+            <span id="gl-saves" class="gl-stat">SV: —</span>
+            <span id="gl-svpct" class="gl-stat sv-pct">SV%: —</span>
+            <span id="gl-ga" class="gl-stat goals-against">GA: —</span>
+          </div>
+
+          <div class="video-player-wrapper">
+            <div class="video-player-container">
+              <video id="hockey-video" class="video-js vjs-default-skin" controls preload="auto">
+                <p class="vjs-no-js">
+                  To view this video please enable JavaScript, and consider upgrading to a
+                  web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+                </p>
+              </video>
+            </div>
+
+            <!-- Shot markers overlay — positioned absolutely over the progress bar -->
+            <div id="shot-markers-container" class="shot-markers-container"></div>
+          </div>
+
+          <!-- ── Shot navigation buttons ────────────────────────────────── -->
+          <div class="shot-nav">
+            <button id="prev-shot-btn" class="btn btn-small" title="Previous shot (J)">◀ Prev Shot</button>
+            <button id="next-shot-btn" class="btn btn-small" title="Next shot (K)">Next Shot ▶</button>
           </div>
         </div>
-        
+
         <div class="event-tagging-panel">
           <h2>Event Tagging</h2>
-          
+
+          <!-- ── Shot Against quick-tag panel ─────────────────────────────── -->
+          <div class="shot-against-panel" id="shot-against-panel">
+            <div class="shot-against-header">
+              <strong>Shot Against</strong>
+              <span class="shortcut-hint">[S] to tag · then pick result</span>
+              <label class="net-toggle-label">
+                <input type="checkbox" id="opponent-net-toggle">
+                Opponent net
+              </label>
+            </div>
+            <!-- Result picker — hidden until a shot is staged -->
+            <div id="result-picker" class="result-picker" style="display:none">
+              <span class="result-picker-prompt">Result for shot at <strong id="staged-time">—</strong>:</span>
+              <div class="result-btns">
+                <button class="result-btn save-btn"    data-result="save"    title="[A]">Save [A]</button>
+                <button class="result-btn goal-btn"    data-result="goal"    title="[D]">Goal [D]</button>
+                <button class="result-btn miss-btn"    data-result="miss"    title="[F]">Miss [F]</button>
+                <button class="result-btn rebound-btn" data-result="rebound" title="[G]">Rebound [G]</button>
+                <button class="result-btn cancel-btn"  data-result="cancel"  title="[Esc]">Cancel [Esc]</button>
+              </div>
+            </div>
+          </div>
+
           <div class="form-group">
             <label>Event Types:</label>
             <div id="event-type-buttons" class="event-type-buttons"></div>
             <button id="add-custom-event-btn" class="btn btn-small">Add Custom Event</button>
           </div>
-          
+
           <div class="form-group">
             <label>Players:</label>
             <div id="player-selection" class="player-selection"></div>
             <button id="add-player-btn" class="btn btn-small">Add Player</button>
           </div>
-          
+
           <div class="tagged-events">
-            <h3>Tagged Events</h3>
+            <div class="tagged-events-header">
+              <h3>Tagged Events</h3>
+              <label class="shots-filter-label">
+                <input type="checkbox" id="shots-only-toggle">
+                Shots against only
+              </label>
+            </div>
             <div id="events-list" class="events-list"></div>
           </div>
         </div>
       </section>
-      
+
       <!-- Player Profiles Tab -->
       <section id="player-profiles" class="tab-content">
         <div class="players-container">
@@ -72,7 +120,7 @@
             <ul id="player-list" class="player-list"></ul>
           </div>
         </div>
-        
+
         <div class="player-events-container">
           <h2 id="selected-player-name">Select a Player</h2>
           <div id="player-events" class="player-events"></div>
@@ -80,8 +128,8 @@
       </section>
     </main>
   </div>
-  
-  <!-- Modal for adding players or custom events -->
+
+  <!-- Event edit modal -->
   <div id="event-edit-modal" class="modal">
     <div class="modal-content">
       <span class="close">&times;</span>
@@ -89,6 +137,7 @@
       <div class="event-edit-info">
         <p><strong>Event Type:</strong> <span id="edit-event-type"></span></p>
         <p><strong>Timestamp:</strong> <span id="edit-event-timestamp"></span></p>
+        <p id="edit-shot-result-row" style="display:none"><strong>Result:</strong> <span id="edit-shot-result"></span></p>
       </div>
       <div class="form-group">
         <label>Players:</label>
@@ -98,7 +147,17 @@
       <button id="event-delete-btn" class="btn btn-danger">Delete Event</button>
     </div>
   </div>
-  
+
+  <!-- Generic name modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="modal-title"></h2>
+      <input type="text" id="modal-input" class="modal-input">
+      <button id="modal-save-btn" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="../../node_modules/video.js/dist/video.min.js"></script>
   <script src="./renderer.js"></script>
