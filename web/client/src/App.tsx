@@ -4,6 +4,7 @@ import type VideoPlayer from 'video.js/dist/types/player';
 import * as api from './api/client';
 import VideoReview from './components/VideoReview';
 import PlayerManagement from './components/PlayerManagement';
+import ReviewAndTagMode from './components/ReviewAndTagMode';
 import './App.css';
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,10 @@ interface AppCtx {
   refreshCompetitions: () => Promise<void>;
   openVideo: (video: Video) => void;
   setCurrentVideoEvents: React.Dispatch<React.SetStateAction<GameEvent[]>>;
+  // Review & Tag mode
+  reviewVideo: Video | null;
+  enterReviewMode: (video: Video) => void;
+  exitReviewMode: () => void;
 }
 
 const AppContext = createContext<AppCtx | null>(null);
@@ -45,6 +50,7 @@ export default function App() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [currentVideoEvents, setCurrentVideoEvents] = useState<GameEvent[]>([]);
+  const [reviewVideo, setReviewVideo] = useState<Video | null>(null);
 
   // Ref to the video.js player instance, shared via context
   const playerRef = useRef<VideoPlayer | null>(null);
@@ -69,6 +75,14 @@ export default function App() {
     setCurrentVideoEvents([]);
   }, []);
 
+  const enterReviewMode = useCallback((video: Video) => {
+    setReviewVideo(video);
+  }, []);
+
+  const exitReviewMode = useCallback(() => {
+    setReviewVideo(null);
+  }, []);
+
   useEffect(() => {
     refreshPlayers();
     refreshEventTypes();
@@ -87,41 +101,51 @@ export default function App() {
     refreshCompetitions,
     openVideo,
     setCurrentVideoEvents,
+    reviewVideo,
+    enterReviewMode,
+    exitReviewMode,
   };
 
+  // When in Review & Tag mode, render the full-screen overlay.
+  // The normal tab layout is NOT rendered, which disposes the VideoReview
+  // player — ReviewAndTagMode creates its own independent player instance.
   return (
     <AppContext.Provider value={ctx}>
-      <div className="app-root">
-        <header className="app-header">
-          <h1 className="app-title">Hockey Coach</h1>
-          <nav className="tab-nav">
-            <button
-              className={`tab-btn${tab === 'video-review' ? ' active' : ''}`}
-              onClick={() => setTab('video-review')}
-            >
-              Video Review
-            </button>
-            <button
-              className={`tab-btn${tab === 'player-profiles' ? ' active' : ''}`}
-              onClick={() => setTab('player-profiles')}
-            >
-              Players
-            </button>
-          </nav>
-        </header>
+      {reviewVideo !== null ? (
+        <ReviewAndTagMode />
+      ) : (
+        <div className="app-root">
+          <header className="app-header">
+            <h1 className="app-title">Hockey Coach</h1>
+            <nav className="tab-nav">
+              <button
+                className={`tab-btn${tab === 'video-review' ? ' active' : ''}`}
+                onClick={() => setTab('video-review')}
+              >
+                Video Review
+              </button>
+              <button
+                className={`tab-btn${tab === 'player-profiles' ? ' active' : ''}`}
+                onClick={() => setTab('player-profiles')}
+              >
+                Players
+              </button>
+            </nav>
+          </header>
 
-        <main className="app-main">
-          <div style={{ display: tab === 'video-review' ? 'contents' : 'none' }}>
-            <VideoReview isActive={tab === 'video-review'} />
-          </div>
-          <div style={{ display: tab === 'player-profiles' ? 'contents' : 'none' }}>
-            <PlayerManagement
-              isActive={tab === 'player-profiles'}
-              onSwitchToVideo={() => setTab('video-review')}
-            />
-          </div>
-        </main>
-      </div>
+          <main className="app-main">
+            <div style={{ display: tab === 'video-review' ? 'contents' : 'none' }}>
+              <VideoReview isActive={tab === 'video-review'} />
+            </div>
+            <div style={{ display: tab === 'player-profiles' ? 'contents' : 'none' }}>
+              <PlayerManagement
+                isActive={tab === 'player-profiles'}
+                onSwitchToVideo={() => setTab('video-review')}
+              />
+            </div>
+          </main>
+        </div>
+      )}
     </AppContext.Provider>
   );
 }
