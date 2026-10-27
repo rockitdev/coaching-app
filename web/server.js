@@ -113,6 +113,17 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Derive the correct video MIME type from the stored filename extension. */
+function videoMimeType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  if (ext === '.webm') return 'video/webm';
+  return 'video/mp4'; // default for .mp4 and anything else we accepted
+}
+
+// ---------------------------------------------------------------------------
 // Video file serving with byte-range support (for seeking in video.js)
 // ---------------------------------------------------------------------------
 app.get('/videos/:filename', (req, res) => {
@@ -126,6 +137,7 @@ app.get('/videos/:filename', (req, res) => {
   const stat = fs.statSync(filePath);
   const fileSize = stat.size;
   const rangeHeader = req.headers.range;
+  const mimeType = videoMimeType(filename);
 
   if (rangeHeader) {
     // Parse Range header: "bytes=start-end"
@@ -145,7 +157,7 @@ app.get('/videos/:filename', (req, res) => {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunkSize,
-      'Content-Type': 'video/mp4',
+      'Content-Type': mimeType,
     });
     fileStream.pipe(res);
   } else {
@@ -153,7 +165,7 @@ app.get('/videos/:filename', (req, res) => {
     res.writeHead(200, {
       'Content-Length': fileSize,
       'Accept-Ranges': 'bytes',
-      'Content-Type': 'video/mp4',
+      'Content-Type': mimeType,
     });
     fs.createReadStream(filePath).pipe(res);
   }
@@ -205,8 +217,15 @@ app.get('/api/event-types', (_req, res) => {
 // POST /api/event-types
 app.post('/api/event-types', (req, res) => {
   const { name, is_custom } = req.body;
-  const result = db.prepare('INSERT INTO event_types (name, is_custom) VALUES (?, ?)').run(name, is_custom ? 1 : 0);
-  res.json({ id: result.lastInsertRowid, name, is_custom: is_custom ? 1 : 0 });
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'name is required and must be a non-empty string' });
+  }
+  const trimmedName = name.trim();
+  if (trimmedName.length > 100) {
+    return res.status(400).json({ error: 'name must be 100 characters or fewer' });
+  }
+  const result = db.prepare('INSERT INTO event_types (name, is_custom) VALUES (?, ?)').run(trimmedName, is_custom ? 1 : 0);
+  res.json({ id: result.lastInsertRowid, name: trimmedName, is_custom: is_custom ? 1 : 0 });
 });
 
 // --- Players ---
@@ -219,16 +238,30 @@ app.get('/api/players', (_req, res) => {
 // POST /api/players
 app.post('/api/players', (req, res) => {
   const { name } = req.body;
-  const result = db.prepare('INSERT INTO players (name) VALUES (?)').run(name);
-  res.json({ id: result.lastInsertRowid, name });
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'name is required and must be a non-empty string' });
+  }
+  const trimmedName = name.trim();
+  if (trimmedName.length > 100) {
+    return res.status(400).json({ error: 'name must be 100 characters or fewer' });
+  }
+  const result = db.prepare('INSERT INTO players (name) VALUES (?)').run(trimmedName);
+  res.json({ id: result.lastInsertRowid, name: trimmedName });
 });
 
 // PUT /api/players/:id
 app.put('/api/players/:id', (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
-  const result = db.prepare('UPDATE players SET name = ? WHERE id = ?').run(name, id);
-  res.json({ id: parseInt(id), name, changes: result.changes });
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'name is required and must be a non-empty string' });
+  }
+  const trimmedName = name.trim();
+  if (trimmedName.length > 100) {
+    return res.status(400).json({ error: 'name must be 100 characters or fewer' });
+  }
+  const result = db.prepare('UPDATE players SET name = ? WHERE id = ?').run(trimmedName, id);
+  res.json({ id: parseInt(id), name: trimmedName, changes: result.changes });
 });
 
 // DELETE /api/players/:id

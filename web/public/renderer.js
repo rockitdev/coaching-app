@@ -187,7 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentVideoId = videoId;
     const displayTitle = displayName || filePath.replace(/^\d+_/, '');
     videoInfo.textContent = `Current video: ${displayTitle}`;
-    player.src({ src: `/videos/${filePath}`, type: 'video/mp4' });
+    const mimeType = filePath.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4';
+    player.src({ src: `/videos/${filePath}`, type: mimeType });
     loadVideoEvents(videoId);
   }
 
