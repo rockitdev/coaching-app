@@ -1,0 +1,30 @@
+.comp-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.comp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1a2332;
+  border-radius: 8px;
+}
+
+.comp-name {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.comp-badge {
+  font-size: 0.75rem;
+  color: #90a4ae;
+  background: #243447;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
