@@ -1,6 +1,8 @@
 services:
   app:
-    image: node:22-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     working_dir: /app
     volumes:
       - .:/app
@@ -13,7 +15,6 @@ services:
     environment:
       - PORT=4321
       - DATA_DIR=/app/data
-    command: sh -c "npm install && node server.js"
     restart: unless-stopped
 
 volumes:
