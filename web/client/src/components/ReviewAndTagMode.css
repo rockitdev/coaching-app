@@ -1,0 +1,730 @@
+/* =========================================================
+   Review & Tag Mode — full-screen film review overlay
+   Optimised for iPad landscape but works on any screen.
+   ========================================================= */
+
+/* Full-screen overlay — sits above the normal app shell */
+.rt-mode {
+  position: fixed;
+  inset: 0;
+  background: #0a1520;
+  display: flex;
+  flex-direction: column;
+  z-index: 900;
+  /* Safe-area padding for notch/home indicator */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* --------------------------------------------------------
+   Minimal header bar
+   -------------------------------------------------------- */
+.rt-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  height: calc(52px + max(0px, env(safe-area-inset-top)));
+  background: #0d1e2f;
+  border-bottom: 1px solid #1a2e47;
+  flex-shrink: 0;
+}
+
+.rt-exit-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #90caf9;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-exit-btn:active {
+  background: #1a3050;
+}
+
+.rt-exit-arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.rt-game-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.rt-game-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rt-game-date,
+.rt-game-comp {
+  font-size: 0.8rem;
+  color: #78909c;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* On narrow screens, hide date/comp */
+@media (max-width: 640px) {
+  .rt-game-date,
+  .rt-game-comp {
+    display: none;
+  }
+}
+
+.rt-panel-toggle {
+  background: #162535;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #90a4ae;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-panel-toggle.active {
+  background: #1a2e47;
+  color: #90caf9;
+  border-color: #1976d2;
+}
+.rt-panel-toggle:active {
+  background: #1a3050;
+}
+
+/* --------------------------------------------------------
+   Body layout: main column + events panel
+   -------------------------------------------------------- */
+.rt-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* --------------------------------------------------------
+   Main column: video + controls + tag strip
+   -------------------------------------------------------- */
+.rt-main-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Video wrap — flex 1 lets it fill remaining height */
+.rt-video-wrap {
+  flex: 1;
+  background: #000;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* video.js container fills wrap */
+.rt-video-wrap [data-vjs-player] {
+  width: 100%;
+  height: 100%;
+}
+
+.rt-video-wrap .video-js {
+  width: 100%;
+  height: 100%;
+  /* Let the actual <video> element fill container with letterboxing */
+}
+
+/* Override vjs-fluid padding-bottom trick — use full height instead */
+.rt-video-wrap .vjs-fluid:not(.vjs-audio-only-mode) {
+  padding-top: 0 !important;
+  height: 100% !important;
+}
+
+.rt-video-wrap .vjs-tech {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* --------------------------------------------------------
+   Controls bar: seek + transport
+   -------------------------------------------------------- */
+.rt-controls-bar {
+  background: #0d1e2f;
+  border-top: 1px solid #1a2e47;
+  padding: 8px 10px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Single seek bar row */
+.rt-seek-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rt-time {
+  font-size: 0.78rem;
+  color: #78909c;
+  white-space: nowrap;
+  min-width: 38px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-seekbar {
+  flex: 1;
+  height: 28px;
+  accent-color: #1976d2;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border-radius: 4px;
+}
+.rt-seekbar::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #243447;
+  border-radius: 3px;
+}
+.rt-seekbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1976d2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  margin-top: -9px;
+}
+.rt-seekbar::-moz-range-track {
+  height: 6px;
+  background: #243447;
+  border-radius: 3px;
+}
+.rt-seekbar::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1976d2;
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+/* Transport row: navigation + skip + play + frame + speed */
+.rt-transport-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px; /* prevent scrollbar clipping */
+}
+
+/* Base transport button */
+.rt-tbtn {
+  background: #1a2e47;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #d0d8e0;
+  padding: 6px 10px;
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-tbtn:active {
+  background: #1565c0;
+}
+
+.rt-tbtn-play {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+  font-size: 1.1rem;
+  min-width: 52px;
+}
+.rt-tbtn-play:active {
+  background: #0d47a1;
+}
+
+.rt-tbtn-nav {
+  color: #90caf9;
+  border-color: #1565c0;
+}
+
+/* Speed group — sits after nav buttons */
+.rt-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.rt-speed-label {
+  font-size: 0.72rem;
+  color: #546e7a;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.rt-speed-btn {
+  background: #162535;
+  border: 1.5px solid #2d3f55;
+  border-radius: 6px;
+  color: #78909c;
+  padding: 5px 8px;
+  min-height: 38px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-speed-btn.active {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+}
+.rt-speed-btn:active {
+  background: #1565c0;
+  color: #fff;
+}
+
+/* --------------------------------------------------------
+   Tag strip — always visible, always within thumb reach
+   -------------------------------------------------------- */
+.rt-tag-strip {
+  background: #0a1929;
+  border-top: 2px solid #1a2e47;
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+
+.rt-tag-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px; /* room for scrollbar on desktop */
+  align-items: center;
+}
+
+/* Hide scrollbar on touch devices but keep scroll */
+.rt-tag-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.rt-tag-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.rt-tag-scroll::-webkit-scrollbar-thumb {
+  background: #2d3f55;
+  border-radius: 2px;
+}
+
+/* Event type tag button — large touch target, clear label */
+.rt-tag-btn {
+  background: #1a3050;
+  border: 2px solid #2d4a6e;
+  border-radius: 10px;
+  color: #b0c8e8;
+  padding: 10px 18px;
+  min-height: 52px;
+  min-width: 80px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, border-color 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+  letter-spacing: 0.01em;
+}
+.rt-tag-btn:active {
+  background: #1565c0;
+  border-color: #42a5f5;
+  color: #fff;
+}
+
+/* Custom event type — subtle indicator */
+.rt-tag-btn.custom {
+  background: #1e2e1a;
+  border-color: #3a5e2e;
+  color: #a5c99e;
+}
+.rt-tag-btn.custom:active {
+  background: #2e7d32;
+  border-color: #66bb6a;
+  color: #fff;
+}
+
+/* Add custom button */
+.rt-tag-btn-add {
+  background: transparent;
+  border: 2px dashed #2d3f55;
+  color: #546e7a;
+}
+.rt-tag-btn-add:active {
+  background: #162535;
+  border-color: #546e7a;
+  color: #90a4ae;
+}
+
+/* Inline add-type form */
+.rt-add-type-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rt-add-type-input {
+  background: #162535;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 8px 12px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  width: 160px;
+  outline: none;
+}
+.rt-add-type-input:focus {
+  border-color: #1976d2;
+}
+
+.rt-add-type-confirm,
+.rt-add-type-cancel {
+  background: #1a2e47;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #90caf9;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-add-type-confirm {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+}
+.rt-add-type-confirm:active {
+  background: #0d47a1;
+}
+.rt-add-type-cancel:active {
+  background: #243447;
+}
+
+/* --------------------------------------------------------
+   Events panel (right side on landscape)
+   -------------------------------------------------------- */
+.rt-events-panel {
+  width: 260px;
+  min-width: 220px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: #0d1e2f;
+  border-left: 1px solid #1a2e47;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* On portrait / narrow screens, events panel slides over as a sidebar */
+@media (max-width: 700px) {
+  .rt-events-panel {
+    position: absolute;
+    top: calc(52px + max(0px, env(safe-area-inset-top)));
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.rt-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1a2e47;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #90caf9;
+}
+
+.rt-events-close {
+  background: transparent;
+  border: none;
+  color: #546e7a;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  min-height: 36px;
+  min-width: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rt-events-close:active {
+  background: #162535;
+}
+
+.rt-events-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rt-events-empty {
+  padding: 20px 12px;
+  font-size: 0.85rem;
+  color: #546e7a;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Event item — full-width tap target to seek */
+.rt-event-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #162535;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-height: 48px;
+  flex-wrap: wrap;
+}
+.rt-event-item:active {
+  background: #1a2e47;
+}
+
+.rt-ev-ts {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1976d2;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.rt-ev-type {
+  font-size: 0.88rem;
+  color: #c0d4e8;
+  font-weight: 500;
+  flex: 1;
+}
+
+.rt-ev-players {
+  font-size: 0.75rem;
+  color: #78909c;
+  width: 100%;
+  margin-top: 2px;
+  padding-left: 48px; /* indent under timestamp */
+}
+
+/* --------------------------------------------------------
+   Player quick-pick overlay
+   -------------------------------------------------------- */
+.rt-picker-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 12, 20, 0.75);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* On landscape, show picker as a centered card */
+@media (orientation: landscape) {
+  .rt-picker-overlay {
+    align-items: center;
+  }
+}
+
+.rt-picker-card {
+  background: #0d1e2f;
+  border: 1px solid #2d4a6e;
+  border-radius: 16px;
+  padding: 20px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.rt-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.rt-picker-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #90caf9;
+}
+
+.rt-picker-skip {
+  background: transparent;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #78909c;
+  padding: 6px 14px;
+  min-height: 40px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-picker-skip:active {
+  background: #162535;
+}
+
+.rt-picker-empty {
+  color: #546e7a;
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+}
+
+/* Player selection grid */
+.rt-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.rt-picker-btn {
+  background: #162535;
+  border: 2px solid #2d3f55;
+  border-radius: 10px;
+  color: #b0c4d8;
+  padding: 10px 16px;
+  min-height: 48px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-picker-btn.selected {
+  background: #1565c0;
+  border-color: #42a5f5;
+  color: #fff;
+}
+.rt-picker-btn:active {
+  background: #1976d2;
+  color: #fff;
+}
+
+.rt-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rt-action-btn {
+  background: #243447;
+  border: 1.5px solid #2d3f55;
+  border-radius: 10px;
+  color: #e0e0e0;
+  padding: 10px 24px;
+  min-height: 48px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.1s;
+}
+
+.rt-action-btn-primary {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+}
+.rt-action-btn-primary:active {
+  background: #0d47a1;
+}
+.rt-action-btn-primary:disabled {
+  background: #0d2a4a;
+  color: #546e7a;
+  cursor: default;
+}
+
+/* --------------------------------------------------------
+   iPad landscape tweaks via media query
+   -------------------------------------------------------- */
+@media (orientation: landscape) and (min-width: 768px) {
+  /* Bigger tag buttons on landscape where there's horizontal room */
+  .rt-tag-btn {
+    padding: 12px 20px;
+    min-height: 56px;
+    font-size: 0.95rem;
+  }
+
+  /* Slightly larger transport buttons */
+  .rt-tbtn {
+    padding: 8px 12px;
+    min-height: 46px;
+    font-size: 0.85rem;
+  }
+}

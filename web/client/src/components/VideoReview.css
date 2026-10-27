@@ -1,3 +1,15 @@
+/* Review & Tag entry button in game-info-bar */
+.vr-review-btn {
+  margin-left: auto;
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+  font-weight: 600;
+}
+.vr-review-btn:hover {
+  background: #1976d2;
+}
+
 /* Video Review tab layout */
 .video-review {
   display: flex;

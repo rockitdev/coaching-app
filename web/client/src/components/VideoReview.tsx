@@ -38,6 +38,7 @@ export default function VideoReview({ isActive }: Props) {
     refreshCompetitions,
     openVideo,
     setCurrentVideoEvents,
+    enterReviewMode,
   } = useApp();
 
   const [videos, setVideos] = useState<Video[]>([]);
@@ -306,6 +307,13 @@ export default function VideoReview({ isActive }: Props) {
             onClick={() => setGameInfoOpen(true)}
           >
             Edit Info
+          </button>
+          <button
+            className="btn btn-primary btn-sm vr-review-btn"
+            onClick={() => enterReviewMode(currentVideo)}
+            title="Enter focused Review and Tag mode (full screen, iPad-optimised)"
+          >
+            Review &amp; Tag
           </button>
         </div>
       )}
