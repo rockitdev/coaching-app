@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hockey Coach Video Analysis</title>
+
+  <!-- Video.js from CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet" />
+  <!-- App styles -->
+  <link href="./styles.css" rel="stylesheet" />
+</head>
+<body>
+
+<div class="app-container">
+  <header class="app-header">
+    <h1>Hockey Coach Video Analysis</h1>
+    <div class="tab-container">
+      <button class="tab-button active" data-tab="video-review">Video Review</button>
+      <button class="tab-button" data-tab="player-profiles">Player Profiles</button>
+    </div>
+  </header>
+
+  <main class="app-content">
+    <!-- Video Review Tab -->
+    <section id="video-review" class="tab-content active">
+      <div class="video-container">
+        <div class="video-controls">
+          <button id="upload-video-btn" class="btn btn-primary">Upload Video</button>
+          <select id="video-select" class="video-select" title="Load a previously uploaded video">
+            <option value="">-- or select a previous game --</option>
+          </select>
+          <div id="video-info" class="video-info"></div>
+        </div>
+
+        <div class="video-player-container">
+          <video id="hockey-video" class="video-js vjs-default-skin" controls preload="auto">
+            <p class="vjs-no-js">
+              Please enable JavaScript and use a browser that
+              <a href="https://videojs.com/html5-video-support/" target="_blank" rel="noreferrer">supports HTML5 video</a>.
+            </p>
+          </video>
+        </div>
+      </div>
+
+      <div class="event-tagging-panel">
+        <h2>Event Tagging</h2>
+
+        <div class="form-group">
+          <label>Event Types:</label>
+          <div id="event-type-buttons" class="event-type-buttons"></div>
+          <button id="add-custom-event-btn" class="btn btn-small">Add Custom Event</button>
+        </div>
+
+        <div class="form-group">
+          <label>Players (optional):</label>
+          <div id="player-selection" class="player-selection"></div>
+          <button id="add-player-btn" class="btn btn-small">Add Player</button>
+        </div>
+
+        <div class="tagged-events">
+          <h3>Tagged Events</h3>
+          <div id="events-list" class="events-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Player Profiles Tab -->
+    <section id="player-profiles" class="tab-content">
+      <div class="players-container">
+        <h2>Players</h2>
+        <div class="player-list-container">
+          <ul id="player-list" class="player-list"></ul>
+        </div>
+        <button id="add-player-profile-btn" class="btn btn-small" style="margin-top:0.75rem">Add Player</button>
+      </div>
+
+      <div class="player-events-container">
+        <h2 id="selected-player-name">Select a Player</h2>
+        <div id="player-events" class="player-events"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Upload modal -->
+<div id="upload-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="upload-modal-close">&times;</span>
+    <h2>Upload Game Video</h2>
+    <p class="upload-note">
+      Supported: <strong>MP4 (H.264), WebM</strong>.<br />
+      MOV / AVI / MKV / WMV will not play in a browser -- export as MP4 first.
+    </p>
+    <div id="upload-drop-zone" class="upload-drop-zone">
+      <p>Drag &amp; drop a video here, or</p>
+      <button class="btn btn-primary" id="pick-file-btn">Choose File</button>
+      <input type="file" id="file-input" accept=".mp4,.webm,video/mp4,video/webm" style="display:none" />
+    </div>
+    <div id="upload-progress" class="upload-progress" style="display:none">
+      <div class="progress-track">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <p id="progress-label">Uploading...</p>
+    </div>
+    <p id="upload-error" class="upload-error" style="display:none"></p>
+  </div>
+</div>
+
+<!-- Generic text-input modal (add player / add event type) -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="modal-close">&times;</span>
+    <h2 id="modal-title"></h2>
+    <input type="text" id="modal-input" class="modal-input" />
+    <div class="modal-buttons">
+      <button id="modal-save-btn" class="btn btn-primary">Save</button>
+      <button id="modal-cancel-btn" class="btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event edit modal -->
+<div id="event-edit-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="event-edit-close">&times;</span>
+    <h2>Edit Event</h2>
+    <div class="event-edit-info">
+      <p><strong>Event Type:</strong> <span id="edit-event-type"></span></p>
+      <p><strong>Timestamp:</strong> <span id="edit-event-timestamp"></span></p>
+    </div>
+    <div class="form-group">
+      <label>Players:</label>
+      <div id="edit-player-selection" class="player-selection"></div>
+    </div>
+    <div class="modal-buttons">
+      <button id="event-edit-save-btn" class="btn btn-primary">Save Changes</button>
+      <button id="event-delete-btn" class="btn btn-danger">Delete Event</button>
+      <button id="event-edit-cancel-btn" class="btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video.min.js"></script>
+<script src="./renderer.js"></script>
+</body>
+</html>

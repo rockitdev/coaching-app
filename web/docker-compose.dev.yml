@@ -1,0 +1,21 @@
+services:
+  app:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - hockey_data:/app/data
+    ports:
+      # Bind loopback + LAN explicitly -- NOT 0.0.0.0 (see CLAUDE.md gotchas)
+      - "127.0.0.1:4328:4321"
+      - "192.168.1.38:4328:4321"
+    environment:
+      - PORT=4321
+      - DATA_DIR=/app/data
+    command: sh -c "npm install && node server.js"
+    restart: unless-stopped
+
+volumes:
+  node_modules:
+  hockey_data:
