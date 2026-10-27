@@ -521,3 +521,142 @@ body {
   color: #1a5276;
   font-weight: 500;
 }
+
+/* -------------------------------------------------------------------------
+   Film review controls (touch-first, iPad-safe)
+   ------------------------------------------------------------------------- */
+.film-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #1a1a2e;
+  border-radius: 6px;
+  padding: 0.6rem 0.5rem;
+  margin-top: 0.5rem;
+  /* Prevent iOS double-tap zoom on rapid taps */
+  touch-action: manipulation;
+}
+
+.film-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.film-row-secondary {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Base film button - big enough to tap comfortably on iPad */
+.film-btn {
+  min-width: 52px;
+  min-height: 48px;
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #2c3e6e;
+  color: #dce8ff;
+  line-height: 1.2;
+  text-align: center;
+  /* Prevent tap highlight flash on iOS */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.film-btn:hover,
+.film-btn:active { background: #3d5a9e; }
+
+/* Larger play/pause */
+.film-btn-play {
+  min-width: 60px;
+  min-height: 56px;
+  font-size: 1.4rem;
+  background: #27ae60;
+}
+.film-btn-play:hover,
+.film-btn-play:active { background: #1e8449; }
+
+/* Skip buttons slightly accent */
+.film-btn-skip { background: #1a4a6e; }
+.film-btn-skip:hover,
+.film-btn-skip:active { background: #2566a0; }
+
+/* Event nav buttons */
+.film-btn-nav { background: #4a235a; }
+.film-btn-nav:hover,
+.film-btn-nav:active { background: #6c3483; }
+
+/* Frame step */
+.film-btn-frame { background: #1a3a5e; font-size: 0.85rem; }
+.film-btn-frame:hover,
+.film-btn-frame:active { background: #2255a0; }
+
+/* Replay */
+.film-btn-replay { background: #7e5400; }
+.film-btn-replay:hover,
+.film-btn-replay:active { background: #a06b00; }
+
+/* Time display */
+.film-time {
+  color: #dce8ff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding: 0 0.25rem;
+  align-self: center;
+}
+
+/* Speed group */
+.film-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.film-speed-label {
+  color: #a0b4d8;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.film-speed-btn {
+  min-width: 46px;
+  min-height: 40px;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #4a6080;
+  border-radius: 4px;
+  background: #1e2c44;
+  color: #a0b4d8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.film-speed-btn:hover,
+.film-speed-btn:active { background: #2c3e6e; color: #dce8ff; }
+.film-speed-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #2980b9;
+}
+
+/* iPad landscape: spread the main row wider */
+@media (min-width: 768px) {
+  .film-btn { min-width: 64px; padding: 0.45rem 0.9rem; }
+  .film-btn-play { min-width: 72px; }
+}
+
+/* Small phones: allow wrapping and keep buttons tappable */
+@media (max-width: 480px) {
+  .film-btn { min-width: 44px; font-size: 0.8rem; padding: 0.35rem 0.5rem; }
+  .film-speed-btn { min-width: 40px; }
+}
