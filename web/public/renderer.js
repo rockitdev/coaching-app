@@ -6,9 +6,7 @@
  *   - File picker (Electron dialog) -> upload form with progress
  *   - Video src is /videos/<filename> served by the server (with byte-range support)
  *   - Upload flow added
- *
- * The API surface is kept the same (same method names, same shapes) so the
- * rest of the logic is nearly identical to the original renderer.js.
+ *   - game_date and competition_id added to videos (Phase 2)
  */
 
 // ---------------------------------------------------------------------------
@@ -37,6 +35,11 @@ const api = {
   getEventTypes: () => fetch('/api/event-types').then(r => r.json()),
   addEventType: (name, isCustom) =>
     fetch('/api/event-types', { method: 'POST', headers: jsonH(), body: JSON.stringify({ name, is_custom: isCustom }) }).then(r => r.json()),
+  getCompetitions: () => fetch('/api/competitions').then(r => r.json()),
+  addCompetition: (name) =>
+    fetch('/api/competitions', { method: 'POST', headers: jsonH(), body: JSON.stringify({ name }) }).then(r => r.json()),
+  updateVideoMeta: (id, game_date, competition_id) =>
+    fetch(`/api/videos/${id}`, { method: 'PATCH', headers: jsonH(), body: JSON.stringify({ game_date, competition_id }) }).then(r => r.json()),
 };
 
 function jsonH() { return { 'Content-Type': 'application/json' }; }
@@ -80,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM refs
   const tabButtons         = document.querySelectorAll('.tab-button');
   const tabContents        = document.querySelectorAll('.tab-content');
-  const videoInfo          = document.getElementById('video-info');
   const videoSelectEl      = document.getElementById('video-select');
   const eventTypeButtons   = document.getElementById('event-type-buttons');
   const playerSelectionEl  = document.getElementById('player-selection');
@@ -91,6 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedPlayerName = document.getElementById('selected-player-name');
   const addPlayerBtn       = document.getElementById('add-player-btn');
   const addPlayerProfileBtn = document.getElementById('add-player-profile-btn');
+
+  // Game info bar
+  const gameInfoBar        = document.getElementById('game-info-bar');
+  const gameInfoDateEl     = document.getElementById('game-info-date');
+  const gameInfoCompEl     = document.getElementById('game-info-competition');
+  const editGameInfoBtn    = document.getElementById('edit-game-info-btn');
 
   // Generic modal
   const modal        = document.getElementById('modal');
@@ -111,27 +119,48 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('event-edit-cancel-btn').onclick = () => eventEditModal.style.display = 'none';
 
   // Upload modal
-  const uploadModal    = document.getElementById('upload-modal');
-  const uploadDropZone = document.getElementById('upload-drop-zone');
-  const fileInput      = document.getElementById('file-input');
-  const uploadProgress = document.getElementById('upload-progress');
-  const progressFill   = document.getElementById('progress-fill');
-  const progressLabel  = document.getElementById('progress-label');
-  const uploadErrorEl  = document.getElementById('upload-error');
+  const uploadModal     = document.getElementById('upload-modal');
+  const uploadDropZone  = document.getElementById('upload-drop-zone');
+  const fileInput       = document.getElementById('file-input');
+  const uploadProgress  = document.getElementById('upload-progress');
+  const progressFill    = document.getElementById('progress-fill');
+  const progressLabel   = document.getElementById('progress-label');
+  const uploadErrorEl   = document.getElementById('upload-error');
+  const uploadGameDate  = document.getElementById('upload-game-date');
+  const uploadCompSelect = document.getElementById('upload-competition');
   document.getElementById('upload-modal-close').onclick = () => uploadModal.style.display = 'none';
   document.getElementById('pick-file-btn').onclick = () => fileInput.click();
 
+  // Game info edit modal
+  const gameInfoModal        = document.getElementById('game-info-modal');
+  const gameInfoDateInput    = document.getElementById('game-info-date-input');
+  const gameInfoCompSelect   = document.getElementById('game-info-competition-select');
+  const gameInfoSaveBtn      = document.getElementById('game-info-save-btn');
+  document.getElementById('game-info-modal-close').onclick = () => gameInfoModal.style.display = 'none';
+  document.getElementById('game-info-cancel-btn').onclick  = () => gameInfoModal.style.display = 'none';
+
+  // Competitions management modal
+  const competitionsModal    = document.getElementById('competitions-modal');
+  const competitionsList     = document.getElementById('competitions-list');
+  const addCompetitionBtn    = document.getElementById('add-competition-btn');
+  document.getElementById('competitions-modal-close').onclick = () => competitionsModal.style.display = 'none';
+  document.getElementById('manage-competitions-btn').onclick  = openCompetitionsModal;
+
   // Close modals when clicking backdrop
   window.addEventListener('click', e => {
-    if (e.target === modal)           modal.style.display = 'none';
-    if (e.target === eventEditModal)  eventEditModal.style.display = 'none';
-    if (e.target === uploadModal)     uploadModal.style.display = 'none';
+    if (e.target === modal)             modal.style.display = 'none';
+    if (e.target === eventEditModal)    eventEditModal.style.display = 'none';
+    if (e.target === uploadModal)       uploadModal.style.display = 'none';
+    if (e.target === gameInfoModal)     gameInfoModal.style.display = 'none';
+    if (e.target === competitionsModal) competitionsModal.style.display = 'none';
   });
 
   // App state
   let currentVideoId = null;
+  let currentVideoMeta = null; // full video row from API
   let players = [];
   let eventTypes = [];
+  let competitions = [];
   let selectedPlayerId = null;
   let currentEditEventId = null;
 
@@ -157,22 +186,102 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------------------
   loadEventTypes();
   loadPlayers();
-  loadVideoList();
+  loadCompetitions().then(() => loadVideoList());
+
+  // -------------------------------------------------------------------------
+  // Competitions
+  // -------------------------------------------------------------------------
+  async function loadCompetitions() {
+    try {
+      competitions = await api.getCompetitions();
+    } catch (err) {
+      console.error('Error loading competitions:', err);
+    }
+  }
+
+  function populateCompetitionSelect(selectEl, selectedId) {
+    selectEl.innerHTML = '<option value="">(none)</option>';
+    competitions.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      if (c.id === selectedId) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  async function openCompetitionsModal() {
+    await loadCompetitions();
+    competitionsList.innerHTML = '';
+    competitions.forEach(c => {
+      const li = document.createElement('li');
+      li.className = 'player-item';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = c.name + (c.is_custom ? '' : ' (default)');
+      li.appendChild(nameSpan);
+      competitionsList.appendChild(li);
+    });
+    competitionsModal.style.display = 'block';
+  }
+
+  addCompetitionBtn.addEventListener('click', () => {
+    showModal('Add Custom Competition', 'Competition name (e.g. Tournament A)', async name => {
+      const result = await api.addCompetition(name);
+      competitions.push(result);
+      // refresh list
+      await openCompetitionsModal();
+      await loadVideoList();
+    });
+  });
 
   // -------------------------------------------------------------------------
   // Video list (previously uploaded)
   // -------------------------------------------------------------------------
   async function loadVideoList() {
     const videos = await api.getVideos().catch(() => []);
+
+    // Build grouped select: group by competition_name, order by date within group.
+    // API already returns rows latest-first per competition via ORDER BY.
     videoSelectEl.innerHTML = '<option value="">-- or select a previous game --</option>';
+
+    // Group the videos by competition
+    const groups = new Map(); // competition_name -> [video]
+    const noComp = [];
     videos.forEach(v => {
+      if (v.competition_name) {
+        if (!groups.has(v.competition_name)) groups.set(v.competition_name, []);
+        groups.get(v.competition_name).push(v);
+      } else {
+        noComp.push(v);
+      }
+    });
+
+    function makeOption(v) {
       const opt = document.createElement('option');
       opt.value = v.id;
       opt.dataset.filePath = v.file_path;
-      // Display original filename (strip the timestamp prefix added by the server)
-      opt.textContent = v.file_path.replace(/^\d+_/, '');
-      videoSelectEl.appendChild(opt);
+      opt.dataset.gameDate = v.game_date || '';
+      opt.dataset.competitionId = v.competition_id || '';
+      opt.dataset.competitionName = v.competition_name || '';
+      const label = v.file_path.replace(/^\d+_/, '');
+      const datePart = v.game_date ? ` (${v.game_date})` : '';
+      opt.textContent = label + datePart;
+      return opt;
+    }
+
+    groups.forEach((vids, compName) => {
+      const group = document.createElement('optgroup');
+      group.label = compName;
+      vids.forEach(v => group.appendChild(makeOption(v)));
+      videoSelectEl.appendChild(group);
     });
+
+    if (noComp.length > 0) {
+      const group = document.createElement('optgroup');
+      group.label = 'Uncategorized';
+      noComp.forEach(v => group.appendChild(makeOption(v)));
+      videoSelectEl.appendChild(group);
+    }
   }
 
   videoSelectEl.addEventListener('change', () => {
@@ -180,16 +289,64 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!opt || !opt.value) return;
     const id   = parseInt(opt.value, 10);
     const file = opt.dataset.filePath;
-    openVideo(id, file, opt.textContent);
+    openVideo(id, file, opt.textContent, {
+      game_date: opt.dataset.gameDate || null,
+      competition_id: opt.dataset.competitionId ? parseInt(opt.dataset.competitionId) : null,
+      competition_name: opt.dataset.competitionName || null,
+    });
   });
 
-  function openVideo(videoId, filePath, displayName) {
+  function openVideo(videoId, filePath, displayName, meta) {
     currentVideoId = videoId;
+    currentVideoMeta = meta || {};
     const displayTitle = displayName || filePath.replace(/^\d+_/, '');
-    videoInfo.textContent = `Current video: ${displayTitle}`;
+    updateGameInfoBar(displayTitle, meta);
     player.src({ src: `/videos/${filePath}`, type: 'video/mp4' });
     loadVideoEvents(videoId);
   }
+
+  function updateGameInfoBar(displayTitle, meta) {
+    gameInfoBar.style.display = 'flex';
+    const date = meta && meta.game_date ? meta.game_date : 'No date set';
+    const comp = meta && meta.competition_name ? meta.competition_name : 'No competition set';
+    gameInfoDateEl.textContent = `Date: ${date}`;
+    gameInfoCompEl.textContent = `Competition: ${comp}`;
+  }
+
+  // Edit game info
+  editGameInfoBtn.addEventListener('click', () => {
+    populateCompetitionSelect(gameInfoCompSelect, currentVideoMeta && currentVideoMeta.competition_id ? parseInt(currentVideoMeta.competition_id) : null);
+    gameInfoDateInput.value = (currentVideoMeta && currentVideoMeta.game_date) ? currentVideoMeta.game_date : '';
+    gameInfoModal.style.display = 'block';
+  });
+
+  gameInfoSaveBtn.addEventListener('click', async () => {
+    if (!currentVideoId) return;
+    const newDate = gameInfoDateInput.value || null;
+    const newCompId = gameInfoCompSelect.value ? parseInt(gameInfoCompSelect.value) : null;
+    try {
+      const updated = await api.updateVideoMeta(currentVideoId, newDate, newCompId);
+      currentVideoMeta = updated;
+      const compRow = competitions.find(c => c.id === newCompId);
+      currentVideoMeta.competition_name = compRow ? compRow.name : null;
+      // Update the current option in the select
+      const opt = videoSelectEl.querySelector(`option[value="${currentVideoId}"]`);
+      if (opt) {
+        opt.dataset.gameDate = newDate || '';
+        opt.dataset.competitionId = newCompId || '';
+        opt.dataset.competitionName = currentVideoMeta.competition_name || '';
+        const label = updated.file_path.replace(/^\d+_/, '');
+        const datePart = newDate ? ` (${newDate})` : '';
+        opt.textContent = label + datePart;
+      }
+      updateGameInfoBar(null, currentVideoMeta);
+      gameInfoModal.style.display = 'none';
+      // Reload the full list to re-group if competition changed
+      await loadVideoList();
+    } catch (err) {
+      alert('Failed to save game info: ' + err.message);
+    }
+  });
 
   // -------------------------------------------------------------------------
   // Upload flow
@@ -198,6 +355,11 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadErrorEl.style.display = 'none';
     uploadProgress.style.display = 'none';
     progressFill.style.width = '0%';
+    // Default date to today
+    uploadGameDate.value = new Date().toISOString().slice(0, 10);
+    // Populate competition select, default to Regular season
+    const defaultComp = competitions.find(c => c.name === 'Regular season');
+    populateCompetitionSelect(uploadCompSelect, defaultComp ? defaultComp.id : null);
     uploadModal.style.display = 'block';
   });
 
@@ -245,6 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const formData = new FormData();
       formData.append('video', file);
+      if (uploadGameDate.value) formData.append('game_date', uploadGameDate.value);
+      if (uploadCompSelect.value) formData.append('competition_id', uploadCompSelect.value);
 
       // Use XMLHttpRequest so we get upload progress
       const result = await new Promise((resolve, reject) => {
@@ -293,7 +457,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       uploadModal.style.display = 'none';
-      openVideo(result.id, result.file_path, file.name);
+      openVideo(result.id, result.file_path, file.name, {
+        game_date: result.game_date,
+        competition_id: result.competition_id,
+        competition_name: competitions.find(c => c.id === result.competition_id)?.name || null,
+      });
 
     } catch (err) {
       uploadErrorEl.textContent = `Upload failed: ${err.message}`;
@@ -391,7 +559,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tabButtons[0].click(); // switch to Video Review tab
 
-    openVideo(videoId, filePath, displayName);
+    openVideo(videoId, filePath, displayName, {
+      game_date: item.dataset.gameDate || null,
+      competition_id: null,
+      competition_name: item.dataset.competitionName || null,
+    });
     player.one('loadedmetadata', () => {
       player.currentTime(timestamp);
       loadVideoEvents(videoId);
@@ -717,7 +889,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const title = document.createElement('h3');
           title.className   = 'player-event-video';
-          title.textContent = ev.file_path.replace(/^\d+_/, '');
+          const datePart = ev.game_date ? ` (${ev.game_date})` : '';
+          const compPart = ev.competition_name ? ` -- ${ev.competition_name}` : '';
+          title.textContent = ev.file_path.replace(/^\d+_/, '') + datePart + compPart;
           container.appendChild(title);
           playerEventsEl.appendChild(container);
         }
@@ -728,6 +902,8 @@ document.addEventListener('DOMContentLoaded', () => {
         item.dataset.timestamp      = ev.timestamp;
         item.dataset.filePath       = ev.file_path;
         item.dataset.displayName    = ev.file_path.replace(/^\d+_/, '');
+        item.dataset.gameDate       = ev.game_date || '';
+        item.dataset.competitionName = ev.competition_name || '';
 
         const details = document.createElement('div');
         details.className = 'player-event-details';

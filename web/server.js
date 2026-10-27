@@ -18,12 +18,13 @@ const DB_PATH = path.join(DATA_DIR, 'hockey-coach.db');
 fs.mkdirSync(VIDEO_DIR, { recursive: true });
 
 // ---------------------------------------------------------------------------
-// Database setup (same 5 tables as the Electron app, verbatim)
+// Database setup
 // ---------------------------------------------------------------------------
 const db = new Database(DB_PATH);
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
+// Core tables (unchanged from original)
 db.exec(`
   CREATE TABLE IF NOT EXISTS players (
     id   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,6 +55,50 @@ db.exec(`
     PRIMARY KEY (event_id, player_id)
   );
 `);
+
+// Competitions table (new)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS competitions (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT    NOT NULL,
+    is_custom INTEGER NOT NULL DEFAULT 0
+  );
+`);
+
+// Seed default competition types if none exist
+const compCount = db.prepare('SELECT COUNT(*) as c FROM competitions WHERE is_custom = 0').get();
+if (compCount.c === 0) {
+  const insertComp = db.prepare('INSERT INTO competitions (name, is_custom) VALUES (?, 0)');
+  for (const name of ['Regular season', 'Pre-season', 'Playoffs']) insertComp.run(name);
+  console.log('Default competition types inserted');
+}
+
+// Add game_date and competition_id columns to videos if missing (idempotent)
+const videosCols = db.pragma('table_info(videos)').map(c => c.name);
+if (!videosCols.includes('game_date')) {
+  db.exec('ALTER TABLE videos ADD COLUMN game_date TEXT');
+  console.log('Added game_date column to videos');
+}
+if (!videosCols.includes('competition_id')) {
+  db.exec('ALTER TABLE videos ADD COLUMN competition_id INTEGER REFERENCES competitions(id)');
+  console.log('Added competition_id column to videos');
+}
+
+// Backfill the 3 existing games (idempotent: only if game_date IS NULL)
+const regularSeasonRow = db.prepare("SELECT id FROM competitions WHERE name = 'Regular season'").get();
+if (regularSeasonRow) {
+  const rid = regularSeasonRow.id;
+  // Game 1 = 2026-10-18, Game 2 = 2026-10-24, Game 3 = 2026-10-25
+  const backfills = [
+    { id: 1, date: '2026-10-18' },
+    { id: 2, date: '2026-10-24' },
+    { id: 3, date: '2026-10-25' },
+  ];
+  const upd = db.prepare(
+    'UPDATE videos SET game_date = ?, competition_id = ? WHERE id = ? AND game_date IS NULL'
+  );
+  for (const row of backfills) upd.run(row.date, rid, row.id);
+}
 
 // Insert default event types if none exist
 const defaultTypes = ['Shot', 'Faceoff', 'Zone Entry', 'Turnover', 'Goal', 'Penalty', 'Save'];
@@ -160,12 +205,32 @@ app.get('/videos/:filename', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// API routes -- mirrors the Electron window.api.* surface exactly
+// API routes
 // ---------------------------------------------------------------------------
+
+// --- Competitions ---
+
+// GET /api/competitions
+app.get('/api/competitions', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM competitions ORDER BY is_custom, id').all());
+});
+
+// POST /api/competitions  -- add a custom competition
+app.post('/api/competitions', (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+  try {
+    const result = db.prepare('INSERT INTO competitions (name, is_custom) VALUES (?, 1)').run(name.trim());
+    res.json({ id: result.lastInsertRowid, name: name.trim(), is_custom: 1 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // --- Videos ---
 
 // POST /api/upload -- upload a video file
+// game_date and competition_id are optional multipart text fields
 app.post('/api/upload', (req, res) => {
   upload.single('video')(req, res, (err) => {
     if (err) {
@@ -177,22 +242,62 @@ app.post('/api/upload', (req, res) => {
 
     // Store only the basename as file_path (the server knows where to find it)
     const filePath = req.file.filename;
+    const gameDate = (req.body.game_date || '').trim() || null;
+    const competitionId = req.body.competition_id ? parseInt(req.body.competition_id, 10) || null : null;
+
     try {
-      const existing = db.prepare('SELECT id, file_path FROM videos WHERE file_path = ?').get(filePath);
+      const existing = db.prepare('SELECT id, file_path, game_date, competition_id FROM videos WHERE file_path = ?').get(filePath);
       if (existing) {
-        return res.json({ id: existing.id, file_path: existing.file_path });
+        return res.json(existing);
       }
-      const result = db.prepare('INSERT INTO videos (file_path) VALUES (?)').run(filePath);
-      res.json({ id: result.lastInsertRowid, file_path: filePath });
+      const result = db.prepare(
+        'INSERT INTO videos (file_path, game_date, competition_id) VALUES (?, ?, ?)'
+      ).run(filePath, gameDate, competitionId);
+      res.json({ id: result.lastInsertRowid, file_path: filePath, game_date: gameDate, competition_id: competitionId });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 });
 
-// GET /api/videos
+// GET /api/videos -- latest-first by game_date, then by id DESC
 app.get('/api/videos', (_req, res) => {
-  res.json(db.prepare('SELECT * FROM videos').all());
+  const rows = db.prepare(`
+    SELECT v.id, v.file_path, v.game_date, v.competition_id,
+           c.name AS competition_name, c.is_custom AS competition_is_custom
+    FROM videos v
+    LEFT JOIN competitions c ON v.competition_id = c.id
+    ORDER BY
+      CASE WHEN v.game_date IS NULL THEN 1 ELSE 0 END,
+      v.game_date DESC,
+      v.id DESC
+  `).all();
+  res.json(rows);
+});
+
+// PATCH /api/videos/:id -- update game_date and/or competition_id
+app.patch('/api/videos/:id', (req, res) => {
+  const { id } = req.params;
+  const { game_date, competition_id } = req.body;
+
+  const video = db.prepare('SELECT * FROM videos WHERE id = ?').get(id);
+  if (!video) return res.status(404).json({ error: 'Video not found' });
+
+  const newDate = game_date !== undefined ? (game_date || null) : video.game_date;
+  const newComp = competition_id !== undefined ? (competition_id || null) : video.competition_id;
+
+  db.prepare('UPDATE videos SET game_date = ?, competition_id = ? WHERE id = ?')
+    .run(newDate, newComp, id);
+
+  const updated = db.prepare(`
+    SELECT v.id, v.file_path, v.game_date, v.competition_id,
+           c.name AS competition_name
+    FROM videos v
+    LEFT JOIN competitions c ON v.competition_id = c.id
+    WHERE v.id = ?
+  `).get(id);
+
+  res.json(updated);
 });
 
 // --- Event types ---
@@ -242,13 +347,16 @@ app.delete('/api/players/:id', (req, res) => {
 app.get('/api/players/:id/events', (req, res) => {
   const { id } = req.params;
   const rows = db.prepare(`
-    SELECT e.id, e.timestamp, e.video_id, v.file_path, et.name as event_type_name, et.id as event_type_id
+    SELECT e.id, e.timestamp, e.video_id, v.file_path, v.game_date,
+           c.name AS competition_name,
+           et.name as event_type_name, et.id as event_type_id
     FROM events e
     JOIN event_player_associations epa ON e.id = epa.event_id
     JOIN videos v ON e.video_id = v.id
     JOIN event_types et ON e.event_type_id = et.id
+    LEFT JOIN competitions c ON v.competition_id = c.id
     WHERE epa.player_id = ?
-    ORDER BY v.file_path, e.timestamp
+    ORDER BY v.game_date DESC, v.file_path, e.timestamp
   `).all(id);
   res.json(rows);
 });
