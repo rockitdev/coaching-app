@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import videojs from 'video.js';
+import 'video.js/dist/video-js.min.css';
 import type VjsPlayer from 'video.js/dist/types/player';
 
 interface Props {
