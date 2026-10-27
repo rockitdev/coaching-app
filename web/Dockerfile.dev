@@ -1,0 +1,10 @@
+FROM node:22-alpine
+
+# better-sqlite3 needs native build tools
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Source is bind-mounted at runtime.
+# npm install runs at container start so it writes into the named volume.
+CMD ["sh", "-c", "npm install && node server.js"]
