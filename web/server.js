@@ -348,6 +348,7 @@ app.get('/api/players/:id/events', (req, res) => {
   const { id } = req.params;
   const rows = db.prepare(`
     SELECT e.id, e.timestamp, e.video_id, v.file_path, v.game_date,
+           v.competition_id,
            c.name AS competition_name,
            et.name as event_type_name, et.id as event_type_id
     FROM events e
