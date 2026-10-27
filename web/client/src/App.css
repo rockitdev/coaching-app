@@ -1,0 +1,183 @@
+/* App shell */
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  min-height: 100vh;
+  background: #0f1923;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: #162535;
+  border-bottom: 1px solid #243447;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.app-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #90caf9;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1.5px solid #243447;
+  color: #90a4ae;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  min-height: 44px; /* touch target */
+}
+
+.tab-btn.active,
+.tab-btn:active {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+}
+
+/* Main area */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* -----------------------------------------------------------------------
+   Shared utility classes used across components
+----------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.btn:active { opacity: 0.75; }
+
+.btn-primary { background: #1565c0; color: #fff; }
+.btn-primary:hover { background: #1976d2; }
+
+.btn-secondary { background: #243447; color: #e0e0e0; }
+.btn-secondary:hover { background: #2d3f55; }
+
+.btn-danger { background: #b71c1c; color: #fff; }
+.btn-danger:hover { background: #c62828; }
+
+.btn-sm {
+  padding: 6px 12px;
+  min-height: 36px;
+  font-size: 0.85rem;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-box {
+  background: #162535;
+  border: 1px solid #243447;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #90caf9;
+  margin-bottom: 16px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* Form controls */
+.form-input {
+  width: 100%;
+  background: #0f1923;
+  border: 1.5px solid #243447;
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  outline: none;
+  min-height: 44px;
+}
+.form-input:focus { border-color: #1976d2; }
+
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2390a4ae' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+label.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #90a4ae;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+/* Empty state */
+.empty-msg {
+  color: #546e7a;
+  text-align: center;
+  padding: 24px 16px;
+  font-size: 0.9rem;
+}

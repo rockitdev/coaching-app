@@ -1,0 +1,130 @@
+/* Film review controls */
+.film-controls {
+  background: #162535;
+  border-top: 1px solid #243447;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Seek bar row */
+.film-seek-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.film-time-small {
+  font-size: 0.8rem;
+  color: #90a4ae;
+  white-space: nowrap;
+  min-width: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.film-seekbar {
+  flex: 1;
+  height: 24px;
+  accent-color: #1976d2;
+  cursor: pointer;
+  /* Larger touch target on mobile */
+  -webkit-appearance: none;
+  appearance: none;
+  background: #243447;
+  border-radius: 4px;
+}
+.film-seekbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1976d2;
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+/* Button rows */
+.film-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.film-btn {
+  background: #243447;
+  border: 1.5px solid #2d3f55;
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 8px 10px;
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.film-btn:active { background: #1565c0; }
+
+.film-btn-play {
+  background: #1565c0;
+  border-color: #1976d2;
+  font-size: 1.1rem;
+  min-width: 52px;
+}
+.film-btn-play:active { background: #0d47a1; }
+
+.film-btn-skip { min-width: 52px; }
+.film-btn-frame { min-width: 52px; }
+.film-btn-nav {
+  background: #1a2e47;
+  border-color: #1565c0;
+  color: #90caf9;
+}
+.film-btn-replay {
+  background: #1a2e47;
+  border-color: #243447;
+}
+
+/* Speed group */
+.film-row-secondary {
+  justify-content: space-between;
+}
+
+.film-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.film-speed-label {
+  font-size: 0.8rem;
+  color: #90a4ae;
+  margin-right: 2px;
+}
+
+.film-speed-btn {
+  background: #243447;
+  border: 1.5px solid #2d3f55;
+  border-radius: 6px;
+  color: #90a4ae;
+  padding: 6px 10px;
+  min-height: 36px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.film-speed-btn.active {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+}
+.film-speed-btn:active {
+  background: #1565c0;
+  color: #fff;
+}

@@ -1,0 +1,223 @@
+/* Review & Tag entry button in game-info-bar */
+.vr-review-btn {
+  margin-left: auto;
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+  font-weight: 600;
+}
+.vr-review-btn:hover {
+  background: #1976d2;
+}
+
+/* Video Review tab layout */
+.video-review {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Top toolbar */
+.vr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #162535;
+  border-bottom: 1px solid #243447;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.vr-game-select {
+  flex: 1;
+  min-width: 180px;
+  max-width: 340px;
+  height: 44px;
+}
+
+/* Game info bar */
+.game-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #1a2e47;
+  border-bottom: 1px solid #243447;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.game-info-piece {
+  font-size: 0.88rem;
+  color: #90caf9;
+}
+
+/* Player area */
+.vr-player-wrap {
+  background: #000;
+  flex-shrink: 0;
+  /* On narrow screens keep video+controls visible above the fold */
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.vr-player-wrap .vjs-fluid {
+  max-height: 38vh;
+}
+
+/* Bottom panel: event tagging + player selection + events list */
+.vr-bottom-panel {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.vr-section {
+  border-bottom: 1px solid #1a2332;
+  padding: 12px 12px 14px;
+}
+
+.vr-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.vr-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #90a4ae;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Event type grid */
+.event-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+}
+
+.event-tag-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: #1a2e47;
+  border: 1.5px solid #243447;
+  border-radius: 10px;
+  color: #e0e0e0;
+  padding: 10px 8px;
+  min-height: 56px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.event-tag-btn:active,
+.event-tag-btn.active {
+  background: #1565c0;
+  border-color: #1976d2;
+}
+.event-tag-btn.custom {
+  border-color: #37474f;
+  color: #b0bec5;
+}
+
+.event-tag-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.event-tag-shortcut {
+  font-size: 0.7rem;
+  color: #546e7a;
+}
+
+/* Player checkboxes */
+.player-checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.player-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a2332;
+  border: 1.5px solid #243447;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 40px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  font-size: 0.9rem;
+}
+.player-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #1976d2;
+  cursor: pointer;
+}
+.player-checkbox-item:has(input:checked) {
+  background: #1a3a5c;
+  border-color: #1565c0;
+}
+
+/* Events list */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1a2332;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-height: 44px;
+}
+.event-item:active { background: #1a3a5c; }
+
+.event-ts {
+  font-size: 0.85rem;
+  color: #90caf9;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+}
+
+.event-type-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.event-players-label {
+  font-size: 0.8rem;
+  color: #90a4ae;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-edit-btn {
+  flex-shrink: 0;
+}
