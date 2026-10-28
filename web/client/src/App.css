@@ -145,8 +145,17 @@
 
 .btn-sm {
   padding: 6px 14px;
-  min-height: 36px;
+  min-height: 44px;
   font-size: var(--text-sm);
+}
+
+/* --------------------------------------------------------
+   Focus rings — visible keyboard / assistive-tech focus
+   -------------------------------------------------------- */
+.btn:focus-visible,
+.tab-btn:focus-visible {
+  outline: 2.5px solid var(--accent-hi);
+  outline-offset: 2px;
 }
 
 /* --------------------------------------------------------
