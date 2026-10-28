@@ -26,6 +26,10 @@ export default function VideoPlayer({ playerRef, onReady }: Props) {
       // for large game files (1-2 GB). 'auto' would start downloading immediately.
       preload: 'metadata',
       fluid: true,
+      // iOS Safari requires playsinline so the video plays inside the custom
+      // player UI instead of going full-screen in the system player. Without
+      // this the <video> element appears unloaded/stalled on iPad/iPhone.
+      playsinline: true,
       playbackRates: [0.25, 0.5, 0.75, 1, 1.5, 2],
       controlBar: {
         playbackRateMenuButton: true,
