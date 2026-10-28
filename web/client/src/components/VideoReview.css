@@ -167,17 +167,16 @@
   /* Always visible — lets user show/hide library */
 }
 
-/* On wide screens, the library is always visible — the toggle is still there
-   but more subtle */
+/* On wide screens, show a compact toggle */
 @media (min-width: 900px) {
   .vr-lib-toggle {
-    opacity: 0.6;
     font-size: var(--text-xs);
     min-height: 32px;
     padding: 4px 10px;
+    color: var(--text-low);
   }
   .vr-lib-toggle:hover {
-    opacity: 1;
+    color: var(--text-med);
   }
 }
 
@@ -409,7 +408,7 @@
   border-radius: 100px;
   color: var(--text-med);
   padding: 6px var(--sp-md);
-  min-height: 36px;
+  min-height: var(--touch-min);
   font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
