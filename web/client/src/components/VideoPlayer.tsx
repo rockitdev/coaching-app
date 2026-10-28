@@ -50,6 +50,41 @@ export default function VideoPlayer({ playerRef, onReady }: Props) {
     playerRef.current = player as unknown as VjsPlayer;
 
     player.ready(() => {
+      // -----------------------------------------------------------------------
+      // WebKit black-frame compositing fix
+      //
+      // Symptom: on iOS Safari / iPad the video plays (currentTime advances,
+      // duration is known, pause button is active) but the frame is completely
+      // black with no visible picture.
+      //
+      // Root cause: WebKit composites decoded video frames on a separate GPU
+      // plane. When the <video> element lives inside a position:fixed ancestor
+      // (or multiple overflow:hidden ancestors), WebKit can fail to merge that
+      // plane into the visible stacking context — yielding a black rectangle
+      // while audio continues normally.
+      //
+      // Fix 1 (CSS — see ReviewAndTagMode.css .vjs-tech rule): translate3d(0,0,0)
+      // in CSS is the primary fix, applied before the element is visible so the
+      // GPU layer is set up correctly from the start.
+      //
+      // Fix 2 (JS, here): after video.js initialises and the tech <video>
+      // element exists, force the same GPU layer programmatically AND set the
+      // legacy webkit-playsinline attribute (required on Safari < 14 where the
+      // modern `playsinline` attribute alone is not sufficient).
+      // -----------------------------------------------------------------------
+      const techEl = (player.el() as HTMLElement).querySelector('video');
+      if (techEl) {
+        // Legacy inline-playback attribute (Safari < 14)
+        techEl.setAttribute('webkit-playsinline', '');
+        // Force the video element into its own GPU compositing layer.
+        // translateZ(0) / translate3d(0,0,0) is the canonical iOS Safari fix
+        // for the black-frame bug. The will-change hint tells WebKit to
+        // pre-allocate the GPU layer before decoding starts.
+        (techEl as HTMLElement).style.webkitTransform = 'translateZ(0)';
+        (techEl as HTMLElement).style.transform     = 'translateZ(0)';
+        (techEl as HTMLElement).style.willChange    = 'transform';
+      }
+
       onReady?.(player as unknown as VjsPlayer);
     });
 
