@@ -22,6 +22,18 @@ function formatTime(secs: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function formatDate(d: string | null): string {
+  if (!d) return '';
+  // Try parsing as YYYY-MM-DD
+  const parts = d.split('-');
+  if (parts.length === 3) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const month = months[parseInt(parts[1], 10) - 1] ?? parts[1];
+    return `${month} ${parseInt(parts[2], 10)}, ${parts[0]}`;
+  }
+  return d;
+}
+
 interface Props {
   isActive: boolean;
 }
@@ -42,9 +54,9 @@ export default function VideoReview({ isActive }: Props) {
   } = useApp();
 
   const [videos, setVideos] = useState<Video[]>([]);
-  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
   const [playerLoaded, setPlayerLoaded] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(true);
 
   // Modal states
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -89,13 +101,11 @@ export default function VideoReview({ isActive }: Props) {
       const { timestamp, videoId } = (e as CustomEvent<{ timestamp: number; videoId: number }>).detail;
       const p = playerRef.current;
       if (!p) return;
-      // If the right video is already loaded, seek immediately
       const clamp = (t: number) => Math.max(0, Math.min(t, p.duration() ?? 0));
       if (currentVideo?.id === videoId && p.duration()) {
         p.currentTime(clamp(timestamp));
         p.play();
       } else {
-        // Wait for metadata to load, then seek
         p.one('loadedmetadata', () => {
           p.currentTime(clamp(timestamp));
           p.play();
@@ -106,13 +116,11 @@ export default function VideoReview({ isActive }: Props) {
     return () => window.removeEventListener('hc-seek-to', handleSeekTo);
   }, [currentVideo, playerRef]);
 
-  function handleVideoSelect(e: React.ChangeEvent<HTMLSelectElement>) {
-    const videoId = parseInt(e.target.value, 10);
-    if (!videoId) return;
-    const video = videos.find((v) => v.id === videoId);
-    if (video) {
-      openVideo(video);
-      setSelectedVideoId(e.target.value);
+  function handleVideoClick(video: Video) {
+    openVideo(video);
+    // On narrow screens, close the library after selection to show the player
+    if (window.innerWidth < 900) {
+      setLibraryOpen(false);
     }
   }
 
@@ -121,11 +129,11 @@ export default function VideoReview({ isActive }: Props) {
     const enriched: Video = { ...video, competition_name: comp?.name ?? null };
     await loadVideos();
     openVideo(enriched);
-    setSelectedVideoId(String(video.id));
+    if (window.innerWidth < 900) setLibraryOpen(false);
   }
 
   async function handleGameInfoSaved(updated: Video) {
-    setCurrentVideoEvents([]); // keep state clean
+    setCurrentVideoEvents([]);
     openVideo(updated);
     await loadVideos();
   }
@@ -221,7 +229,6 @@ export default function VideoReview({ isActive }: Props) {
         }
       }
 
-      // Event tagging shortcuts
       const key = e.key.toUpperCase();
       const idx = SHORTCUT_KEYS.indexOf(key);
       if (idx !== -1 && idx < eventTypes.length) {
@@ -234,7 +241,7 @@ export default function VideoReview({ isActive }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, currentVideo, currentVideoEvents, eventTypes, playerRef]);
 
-  // Group videos by competition for the select
+  // Group videos by competition for display
   const videoGroups = (() => {
     const groups = new Map<string, Video[]>();
     const noComp: Video[] = [];
@@ -249,164 +256,239 @@ export default function VideoReview({ isActive }: Props) {
     return { groups, noComp };
   })();
 
+  const gameName = currentVideo
+    ? currentVideo.file_path.replace(/^\d+_/, '')
+    : null;
+
   return (
     <div className="video-review">
-      {/* Top toolbar */}
-      <div className="vr-toolbar">
-        <button className="btn btn-primary" onClick={() => setUploadOpen(true)}>
-          Upload Video
-        </button>
-        <select
-          className="form-input vr-game-select"
-          value={selectedVideoId}
-          onChange={handleVideoSelect}
-        >
-          <option value="">-- select a game --</option>
-          {Array.from(videoGroups.groups.entries()).map(([compName, vids]) => (
-            <optgroup key={compName} label={compName}>
-              {vids.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.file_path.replace(/^\d+_/, '')}
-                  {v.game_date ? ` (${v.game_date})` : ''}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-          {videoGroups.noComp.length > 0 && (
-            <optgroup label="Uncategorized">
-              {videoGroups.noComp.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.file_path.replace(/^\d+_/, '')}
-                  {v.game_date ? ` (${v.game_date})` : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={() => setCompetitionsOpen(true)}
-        >
-          Competitions
-        </button>
-      </div>
-
-      {/* Game info bar */}
-      {currentVideo && (
-        <div className="game-info-bar">
-          <span className="game-info-piece">
-            {currentVideo.game_date ? `Date: ${currentVideo.game_date}` : 'No date set'}
-          </span>
-          <span className="game-info-piece">
-            {currentVideo.competition_name
-              ? `Competition: ${currentVideo.competition_name}`
-              : 'No competition set'}
-          </span>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setGameInfoOpen(true)}
-          >
-            Edit Info
-          </button>
-          <button
-            className="btn btn-primary btn-sm vr-review-btn"
-            onClick={() => enterReviewMode(currentVideo)}
-            title="Enter focused Review and Tag mode (full screen, iPad-optimised)"
-          >
-            Review &amp; Tag
-          </button>
-        </div>
-      )}
-
-      {/* Video player + film controls */}
-      <div className="vr-player-wrap">
-        <VideoPlayer
-          playerRef={playerRef}
-          onReady={() => setPlayerLoaded(true)}
-        />
-        <FilmControls
-          player={playerRef.current}
-          events={currentVideoEvents}
-          visible={!!currentVideo}
-        />
-      </div>
-
-      {/* Event tagging panel */}
-      <div className="vr-bottom-panel">
-        {/* Event type buttons */}
-        <div className="vr-section">
-          <div className="vr-section-header">
-            <h2 className="vr-section-title">Tag Event</h2>
+      {/* ---- Library sidebar (game list) ---- */}
+      <aside className={`vr-library${libraryOpen ? ' open' : ''}`}>
+        <div className="vr-lib-header">
+          <span className="vr-lib-heading">Library</span>
+          <div className="vr-lib-actions">
             <button
               className="btn btn-secondary btn-sm"
-              onClick={() => setAddEventTypeOpen(true)}
+              onClick={() => setCompetitionsOpen(true)}
+              title="Manage competitions"
             >
-              + Custom
+              Competitions
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setUploadOpen(true)}
+            >
+              Upload
             </button>
           </div>
-          <div className="event-type-grid">
-            {eventTypes.map((et, idx) => (
-              <button
-                key={et.id}
-                className={`event-tag-btn${et.is_custom ? ' custom' : ''}`}
-                onClick={() => tagEvent(et.id)}
-                title={idx < SHORTCUT_KEYS.length ? `Press ${SHORTCUT_KEYS[idx]}` : undefined}
-              >
-                <span className="event-tag-name">{et.name}</span>
-                {idx < SHORTCUT_KEYS.length && (
-                  <span className="event-tag-shortcut">[{SHORTCUT_KEYS[idx]}]</span>
-                )}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Player selection */}
-        <div className="vr-section">
-          <h2 className="vr-section-title">Players (optional)</h2>
-          <div className="player-checkbox-grid">
-            {players.map((p) => (
-              <label key={p.id} className="player-checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={selectedPlayerIds.has(p.id)}
-                  onChange={() => togglePlayerSelect(p.id)}
-                />
-                <span>{p.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+        <div className="vr-lib-list">
+          {videos.length === 0 && (
+            <div className="vr-lib-empty">
+              <span>No games yet.</span>
+              <span>Upload a video to get started.</span>
+            </div>
+          )}
 
-        {/* Tagged events */}
-        <div className="vr-section">
-          <h2 className="vr-section-title">Tagged Events</h2>
-          {currentVideoEvents.length === 0 ? (
-            <div className="empty-msg">No events tagged yet</div>
-          ) : (
-            <div className="events-list">
-              {currentVideoEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="event-item"
-                  onClick={() => seekToEvent(ev.timestamp)}
+          {/* Competition groups */}
+          {Array.from(videoGroups.groups.entries()).map(([compName, vids]) => (
+            <div key={compName} className="vr-lib-group">
+              <div className="vr-lib-group-label">{compName}</div>
+              {vids.map((v) => (
+                <button
+                  key={v.id}
+                  className={`vr-game-card${currentVideo?.id === v.id ? ' active' : ''}`}
+                  onClick={() => handleVideoClick(v)}
                 >
-                  <span className="event-ts">{formatTime(ev.timestamp)}</span>
-                  <span className="event-type-label">{ev.event_type_name}</span>
-                  <span className="event-players-label">
-                    {ev.players.map((p) => p.name).join(', ')}
+                  <span className="vr-game-card-name">
+                    {v.file_path.replace(/^\d+_/, '')}
                   </span>
-                  <button
-                    className="btn btn-secondary btn-sm event-edit-btn"
-                    onClick={(e) => { e.stopPropagation(); openEventEdit(ev); }}
-                  >
-                    Edit
-                  </button>
-                </div>
+                  {v.game_date && (
+                    <span className="vr-game-card-date">{formatDate(v.game_date)}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+
+          {/* Uncategorized */}
+          {videoGroups.noComp.length > 0 && (
+            <div className="vr-lib-group">
+              {videoGroups.groups.size > 0 && (
+                <div className="vr-lib-group-label">Uncategorized</div>
+              )}
+              {videoGroups.noComp.map((v) => (
+                <button
+                  key={v.id}
+                  className={`vr-game-card${currentVideo?.id === v.id ? ' active' : ''}`}
+                  onClick={() => handleVideoClick(v)}
+                >
+                  <span className="vr-game-card-name">
+                    {v.file_path.replace(/^\d+_/, '')}
+                  </span>
+                  {v.game_date && (
+                    <span className="vr-game-card-date">{formatDate(v.game_date)}</span>
+                  )}
+                </button>
               ))}
             </div>
           )}
         </div>
+      </aside>
+
+      {/* ---- Main content area ---- */}
+      <div className="vr-main">
+        {/* Library toggle (narrow screens) */}
+        <div className="vr-topbar">
+          <button
+            className="btn btn-ghost btn-sm vr-lib-toggle"
+            onClick={() => setLibraryOpen((v) => !v)}
+            aria-label={libraryOpen ? 'Hide library' : 'Show library'}
+          >
+            {libraryOpen ? '← Hide Library' : '☰ Games'}
+          </button>
+
+          {currentVideo && (
+            <button
+              className="btn btn-primary btn-sm vr-review-btn"
+              onClick={() => enterReviewMode(currentVideo)}
+              title="Enter focused Review and Tag mode"
+            >
+              Review &amp; Tag
+            </button>
+          )}
+        </div>
+
+        {/* Game info bar */}
+        {currentVideo && gameName && (
+          <div className="game-info-bar">
+            <div className="game-info-left">
+              <span className="game-info-name">{gameName}</span>
+              <div className="game-info-meta">
+                {currentVideo.game_date && (
+                  <span className="game-info-piece">{formatDate(currentVideo.game_date)}</span>
+                )}
+                {currentVideo.competition_name && (
+                  <span className="badge">{currentVideo.competition_name}</span>
+                )}
+              </div>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setGameInfoOpen(true)}
+            >
+              Edit Info
+            </button>
+          </div>
+        )}
+
+        {/* No game selected placeholder */}
+        {!currentVideo && (
+          <div className="vr-no-game">
+            <div className="vr-no-game-icon">▶</div>
+            <p className="vr-no-game-text">Select a game from the library to start reviewing</p>
+          </div>
+        )}
+
+        {/* Video player + film controls */}
+        {currentVideo && (
+          <div className="vr-player-wrap">
+            <VideoPlayer
+              playerRef={playerRef}
+              onReady={() => setPlayerLoaded(true)}
+            />
+            <FilmControls
+              player={playerRef.current}
+              events={currentVideoEvents}
+              visible={!!currentVideo}
+            />
+          </div>
+        )}
+
+        {/* Bottom panel: tag events + players + events list */}
+        {currentVideo && (
+          <div className="vr-bottom-panel">
+            {/* Event type buttons */}
+            <div className="vr-section">
+              <div className="vr-section-header">
+                <h2 className="vr-section-title">Tag Event</h2>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setAddEventTypeOpen(true)}
+                >
+                  + Custom
+                </button>
+              </div>
+              <div className="event-type-grid">
+                {eventTypes.map((et, idx) => (
+                  <button
+                    key={et.id}
+                    className={`event-tag-btn${et.is_custom ? ' custom' : ''}`}
+                    onClick={() => tagEvent(et.id)}
+                    title={idx < SHORTCUT_KEYS.length ? `Press ${SHORTCUT_KEYS[idx]}` : undefined}
+                  >
+                    <span className="event-tag-name">{et.name}</span>
+                    {idx < SHORTCUT_KEYS.length && (
+                      <span className="event-tag-shortcut">{SHORTCUT_KEYS[idx]}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Player selection */}
+            <div className="vr-section">
+              <h2 className="vr-section-title">Players <span className="vr-optional">(optional)</span></h2>
+              <div className="player-chip-grid">
+                {players.map((p) => (
+                  <button
+                    key={p.id}
+                    className={`player-chip${selectedPlayerIds.has(p.id) ? ' selected' : ''}`}
+                    onClick={() => togglePlayerSelect(p.id)}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tagged events */}
+            <div className="vr-section">
+              <h2 className="vr-section-title">
+                Tagged Events
+                {currentVideoEvents.length > 0 && (
+                  <span className="vr-count">{currentVideoEvents.length}</span>
+                )}
+              </h2>
+              {currentVideoEvents.length === 0 ? (
+                <div className="empty-msg">No events tagged yet — tag one above</div>
+              ) : (
+                <div className="events-list">
+                  {currentVideoEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="event-item"
+                      onClick={() => seekToEvent(ev.timestamp)}
+                    >
+                      <span className="event-ts">{formatTime(ev.timestamp)}</span>
+                      <span className="event-type-label">{ev.event_type_name}</span>
+                      <span className="event-players-label">
+                        {ev.players.map((p) => p.name).join(', ')}
+                      </span>
+                      <button
+                        className="btn btn-secondary btn-sm event-edit-btn"
+                        onClick={(e) => { e.stopPropagation(); openEventEdit(ev); }}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

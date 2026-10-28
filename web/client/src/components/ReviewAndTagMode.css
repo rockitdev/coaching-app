@@ -1,62 +1,67 @@
-/* =========================================================
-   Review & Tag Mode — full-screen film review overlay
-   Optimised for iPad landscape but works on any screen.
-   ========================================================= */
+/* ============================================================
+   Review & Tag Mode — full-screen film review
+   Ice & Coal design: broadcast-grade controls, thumb-first layout
+   Optimised for iPad landscape (primary) + portrait + desktop
+   ============================================================ */
 
-/* Full-screen overlay — sits above the normal app shell */
+/* Full-screen overlay */
 .rt-mode {
   position: fixed;
   inset: 0;
-  background: #0a1520;
+  background: #000;
   display: flex;
   flex-direction: column;
   z-index: 900;
-  /* Safe-area padding for notch/home indicator */
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
 
-/* --------------------------------------------------------
-   Minimal header bar
-   -------------------------------------------------------- */
+/* ============================================================
+   Header bar — minimal, game info + exit
+   ============================================================ */
 .rt-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  padding-top: max(8px, env(safe-area-inset-top));
+  gap: var(--sp-md);
+  padding: 0 var(--sp-md);
+  padding-top: max(0px, env(safe-area-inset-top));
   height: calc(52px + max(0px, env(safe-area-inset-top)));
-  background: #0d1e2f;
-  border-bottom: 1px solid #1a2e47;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .rt-exit-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-xs);
   background: transparent;
-  border: 1.5px solid #2d3f55;
-  border-radius: 8px;
-  color: #90caf9;
-  padding: 8px 14px;
-  min-height: 44px;
-  font-size: 0.95rem;
+  border: 1.5px solid var(--border-accent);
+  border-radius: var(--r-md);
+  color: var(--text-med);
+  padding: 8px var(--sp-md);
+  min-height: var(--touch-min);
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
   user-select: none;
   -webkit-user-select: none;
+  letter-spacing: 0.02em;
+}
+.rt-exit-btn:hover {
+  background: var(--bg-interactive);
+  color: var(--text-high);
 }
 .rt-exit-btn:active {
-  background: #1a3050;
+  background: var(--bg-selected);
 }
 
 .rt-exit-arrow {
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -64,45 +69,52 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-sm);
   overflow: hidden;
   min-width: 0;
 }
 
 .rt-game-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #e0e0e0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text-high);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .rt-game-date,
 .rt-game-comp {
-  font-size: 0.8rem;
-  color: #78909c;
+  font-size: var(--text-xs);
+  color: var(--text-low);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* On narrow screens, hide date/comp */
+.rt-game-comp {
+  padding: 2px 8px;
+  background: var(--bg-selected);
+  border: 1px solid var(--border-accent);
+  border-radius: 100px;
+  color: var(--ice);
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
-  .rt-game-date,
-  .rt-game-comp {
-    display: none;
-  }
+  .rt-game-date { display: none; }
+  .rt-game-comp { display: none; }
 }
 
 .rt-panel-toggle {
-  background: #162535;
-  border: 1.5px solid #2d3f55;
-  border-radius: 8px;
-  color: #90a4ae;
-  padding: 8px 14px;
-  min-height: 44px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  background: var(--bg-raised);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-med);
+  padding: 8px var(--sp-md);
+  min-height: var(--touch-min);
+  font-size: var(--text-sm);
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -110,18 +122,19 @@
   user-select: none;
   -webkit-user-select: none;
 }
+
 .rt-panel-toggle.active {
-  background: #1a2e47;
-  color: #90caf9;
-  border-color: #1976d2;
+  background: var(--bg-selected);
+  border-color: var(--border-accent);
+  color: var(--accent-hi);
 }
 .rt-panel-toggle:active {
-  background: #1a3050;
+  background: var(--bg-selected);
 }
 
-/* --------------------------------------------------------
+/* ============================================================
    Body layout: main column + events panel
-   -------------------------------------------------------- */
+   ============================================================ */
 .rt-body {
   flex: 1;
   display: flex;
@@ -129,9 +142,9 @@
   min-height: 0;
 }
 
-/* --------------------------------------------------------
+/* ============================================================
    Main column: video + controls + tag strip
-   -------------------------------------------------------- */
+   ============================================================ */
 .rt-main-col {
   flex: 1;
   display: flex;
@@ -140,7 +153,7 @@
   min-width: 0;
 }
 
-/* Video wrap — flex 1 lets it fill remaining height */
+/* Video wrap */
 .rt-video-wrap {
   flex: 1;
   background: #000;
@@ -151,7 +164,6 @@
   justify-content: center;
 }
 
-/* video.js container fills wrap */
 .rt-video-wrap [data-vjs-player] {
   width: 100%;
   height: 100%;
@@ -160,10 +172,8 @@
 .rt-video-wrap .video-js {
   width: 100%;
   height: 100%;
-  /* Let the actual <video> element fill container with letterboxing */
 }
 
-/* Override vjs-fluid padding-bottom trick — use full height instead */
 .rt-video-wrap .vjs-fluid:not(.vjs-audio-only-mode) {
   padding-top: 0 !important;
   height: 100% !important;
@@ -175,309 +185,359 @@
   object-fit: contain;
 }
 
-/* --------------------------------------------------------
-   Controls bar: seek + transport
-   -------------------------------------------------------- */
+/* ============================================================
+   Controls bar — seek + transport + speed
+   Professional film-tool feel: dark panel, clear affordances
+   ============================================================ */
 .rt-controls-bar {
-  background: #0d1e2f;
-  border-top: 1px solid #1a2e47;
-  padding: 8px 10px;
+  background: var(--bg-surface);
+  border-top: 2px solid var(--border-default);
+  padding: var(--sp-sm) var(--sp-md);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-sm);
 }
 
-/* Single seek bar row */
+/* Seek row */
 .rt-seek-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-sm);
 }
 
 .rt-time {
-  font-size: 0.78rem;
-  color: #78909c;
+  font-size: var(--text-sm);
+  color: var(--ice);
   white-space: nowrap;
-  min-width: 38px;
+  min-width: 42px;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .rt-seekbar {
   flex: 1;
-  height: 28px;
-  accent-color: #1976d2;
+  height: 32px;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   border-radius: 4px;
 }
+
 .rt-seekbar::-webkit-slider-runnable-track {
   height: 6px;
-  background: #243447;
+  background: var(--border-accent);
   border-radius: 3px;
-}
-.rt-seekbar::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #1976d2;
-  cursor: pointer;
-  border: 2px solid #fff;
-  margin-top: -9px;
-}
-.rt-seekbar::-moz-range-track {
-  height: 6px;
-  background: #243447;
-  border-radius: 3px;
-}
-.rt-seekbar::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #1976d2;
-  cursor: pointer;
-  border: 2px solid #fff;
 }
 
-/* Transport row: navigation + skip + play + frame + speed */
+.rt-seekbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  cursor: pointer;
+  border: 2px solid #fff;
+  margin-top: -8px;
+  box-shadow: 0 2px 8px rgba(45, 127, 249, 0.4);
+}
+
+.rt-seekbar::-moz-range-track {
+  height: 6px;
+  background: var(--border-accent);
+  border-radius: 3px;
+}
+
+.rt-seekbar::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(45, 127, 249, 0.4);
+}
+
+/* Transport row */
 .rt-transport-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-xs);
   flex-wrap: nowrap;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 2px; /* prevent scrollbar clipping */
+  padding-bottom: 2px;
 }
 
 /* Base transport button */
 .rt-tbtn {
-  background: #1a2e47;
-  border: 1.5px solid #2d3f55;
-  border-radius: 8px;
-  color: #d0d8e0;
-  padding: 6px 10px;
-  min-height: 44px;
-  min-width: 44px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background 0.1s;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.rt-tbtn:active {
-  background: #1565c0;
-}
-
-.rt-tbtn-play {
-  background: #1565c0;
-  border-color: #1976d2;
-  color: #fff;
-  font-size: 1.1rem;
-  min-width: 52px;
-}
-.rt-tbtn-play:active {
-  background: #0d47a1;
-}
-
-.rt-tbtn-nav {
-  color: #90caf9;
-  border-color: #1565c0;
-}
-
-/* Speed group — sits after nav buttons */
-.rt-speed-group {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 8px;
-  flex-shrink: 0;
-}
-
-.rt-speed-label {
-  font-size: 0.72rem;
-  color: #546e7a;
-  margin-right: 2px;
-  white-space: nowrap;
-}
-
-.rt-speed-btn {
-  background: #162535;
-  border: 1.5px solid #2d3f55;
-  border-radius: 6px;
-  color: #78909c;
-  padding: 5px 8px;
-  min-height: 38px;
-  font-size: 0.75rem;
+  background: var(--bg-raised);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-med);
+  padding: 6px var(--sp-sm);
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  font-size: var(--text-sm);
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   transition: background 0.1s, color 0.1s;
   user-select: none;
   -webkit-user-select: none;
-}
-.rt-speed-btn.active {
-  background: #1565c0;
-  border-color: #1976d2;
-  color: #fff;
-}
-.rt-speed-btn:active {
-  background: #1565c0;
-  color: #fff;
+  letter-spacing: 0.01em;
 }
 
-/* --------------------------------------------------------
-   Tag strip — always visible, always within thumb reach
-   -------------------------------------------------------- */
+.rt-tbtn:hover {
+  background: var(--bg-interactive);
+  color: var(--text-high);
+}
+.rt-tbtn:active {
+  background: var(--bg-selected);
+  color: var(--accent-hi);
+}
+
+/* Play/Pause — prominent, centered */
+.rt-tbtn-play {
+  background: var(--accent);
+  border-color: var(--accent-hi);
+  color: #fff;
+  font-size: 1.15rem;
+  min-width: 56px;
+  box-shadow: 0 2px 12px rgba(45, 127, 249, 0.3);
+}
+.rt-tbtn-play:hover {
+  background: var(--accent-hi);
+}
+.rt-tbtn-play:active {
+  background: var(--accent-dim);
+  box-shadow: none;
+}
+
+/* Prev/Next event nav */
+.rt-tbtn-nav {
+  color: var(--ice);
+  border-color: var(--ice-dim);
+}
+.rt-tbtn-nav:hover {
+  background: var(--ice-dim);
+  color: var(--ice);
+}
+
+/* Speed group */
+.rt-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: var(--sp-sm);
+  flex-shrink: 0;
+  padding-left: var(--sp-sm);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.rt-speed-label {
+  font-size: var(--text-xs);
+  color: var(--text-low);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 2px;
+}
+
+.rt-speed-btn {
+  background: var(--bg-raised);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  color: var(--text-low);
+  padding: 4px var(--sp-sm);
+  min-height: var(--touch-min);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.rt-speed-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-hi);
+}
+.rt-speed-btn:active {
+  background: var(--accent-dim);
+  color: var(--accent-hi);
+}
+
+/* ============================================================
+   Tag strip — always visible, thumb-reachable
+   This is the primary tagging interface — make it prominent
+   ============================================================ */
 .rt-tag-strip {
-  background: #0a1929;
-  border-top: 2px solid #1a2e47;
-  padding: 8px 10px;
+  background: var(--bg-surface);
+  border-top: 2px solid var(--amber);
+  padding: var(--sp-sm) var(--sp-md);
   flex-shrink: 0;
 }
 
 .rt-tag-scroll {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-sm);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px; /* room for scrollbar on desktop */
+  padding-bottom: 4px;
   align-items: center;
 }
 
-/* Hide scrollbar on touch devices but keep scroll */
-.rt-tag-scroll::-webkit-scrollbar {
-  height: 4px;
-}
-.rt-tag-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+.rt-tag-scroll::-webkit-scrollbar { height: 3px; }
+.rt-tag-scroll::-webkit-scrollbar-track { background: transparent; }
 .rt-tag-scroll::-webkit-scrollbar-thumb {
-  background: #2d3f55;
+  background: var(--border-default);
   border-radius: 2px;
 }
 
-/* Event type tag button — large touch target, clear label */
+/* Tag button — large, clear, stands out from controls */
 .rt-tag-btn {
-  background: #1a3050;
-  border: 2px solid #2d4a6e;
-  border-radius: 10px;
-  color: #b0c8e8;
-  padding: 10px 18px;
-  min-height: 52px;
+  background: var(--amber-bg);
+  border: 2px solid #3a2200;
+  border-radius: var(--r-md);
+  color: var(--amber);
+  padding: var(--sp-sm) var(--sp-lg);
+  min-height: 54px;
   min-width: 80px;
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
   user-select: none;
   -webkit-user-select: none;
   letter-spacing: 0.01em;
 }
-.rt-tag-btn:active {
-  background: #1565c0;
-  border-color: #42a5f5;
-  color: #fff;
+
+.rt-tag-btn:hover {
+  background: #2d1a00;
+  border-color: var(--amber);
+  color: var(--amber-hi);
 }
 
-/* Custom event type — subtle indicator */
+.rt-tag-btn:active {
+  background: var(--amber);
+  border-color: var(--amber-hi);
+  color: #000;
+}
+
+/* Custom event type — green variant */
 .rt-tag-btn.custom {
-  background: #1e2e1a;
-  border-color: #3a5e2e;
-  color: #a5c99e;
+  background: #0a1a0a;
+  border-color: #1a3a1a;
+  color: #7ec87e;
+}
+.rt-tag-btn.custom:hover {
+  background: #0d2a0d;
+  border-color: #2a5a2a;
+  color: #a0d8a0;
 }
 .rt-tag-btn.custom:active {
-  background: #2e7d32;
-  border-color: #66bb6a;
+  background: #1a6b1a;
+  border-color: #22c55e;
   color: #fff;
 }
 
-/* Add custom button */
+/* Add custom type button */
 .rt-tag-btn-add {
   background: transparent;
-  border: 2px dashed #2d3f55;
-  color: #546e7a;
+  border: 2px dashed var(--border-default);
+  color: var(--text-low);
+}
+.rt-tag-btn-add:hover {
+  background: var(--bg-interactive);
+  border-color: var(--border-accent);
+  color: var(--text-med);
 }
 .rt-tag-btn-add:active {
-  background: #162535;
-  border-color: #546e7a;
-  color: #90a4ae;
+  background: var(--bg-selected);
 }
 
 /* Inline add-type form */
 .rt-add-type-inline {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-sm);
   flex-shrink: 0;
 }
 
 .rt-add-type-input {
-  background: #162535;
-  border: 1.5px solid #2d3f55;
-  border-radius: 8px;
-  color: #e0e0e0;
-  padding: 8px 12px;
-  min-height: 44px;
-  font-size: 0.9rem;
+  background: var(--bg-raised);
+  border: 1.5px solid var(--border-accent);
+  border-radius: var(--r-md);
+  color: var(--text-high);
+  padding: var(--sp-sm) var(--sp-md);
+  min-height: var(--touch-min);
+  font-size: var(--text-base);
   width: 160px;
   outline: none;
 }
 .rt-add-type-input:focus {
-  border-color: #1976d2;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45, 127, 249, 0.12);
 }
 
-.rt-add-type-confirm,
-.rt-add-type-cancel {
-  background: #1a2e47;
-  border: 1.5px solid #2d3f55;
-  border-radius: 8px;
-  color: #90caf9;
-  padding: 8px 14px;
-  min-height: 44px;
-  font-size: 0.85rem;
+.rt-add-type-confirm {
+  background: var(--accent);
+  border: 1.5px solid var(--accent-hi);
+  border-radius: var(--r-md);
+  color: #fff;
+  padding: var(--sp-sm) var(--sp-md);
+  min-height: var(--touch-min);
+  font-size: var(--text-sm);
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   user-select: none;
   -webkit-user-select: none;
 }
-.rt-add-type-confirm {
-  background: #1565c0;
-  border-color: #1976d2;
-  color: #fff;
-}
-.rt-add-type-confirm:active {
-  background: #0d47a1;
-}
-.rt-add-type-cancel:active {
-  background: #243447;
-}
+.rt-add-type-confirm:active { opacity: 0.75; }
 
-/* --------------------------------------------------------
+.rt-add-type-cancel {
+  background: var(--bg-raised);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-med);
+  padding: var(--sp-sm) var(--sp-md);
+  min-height: var(--touch-min);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rt-add-type-cancel:active { background: var(--bg-interactive); }
+
+/* ============================================================
    Events panel (right side on landscape)
-   -------------------------------------------------------- */
+   ============================================================ */
 .rt-events-panel {
-  width: 260px;
+  width: 264px;
   min-width: 220px;
   max-width: 300px;
   display: flex;
   flex-direction: column;
-  background: #0d1e2f;
-  border-left: 1px solid #1a2e47;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
   flex-shrink: 0;
   overflow: hidden;
 }
 
-/* On portrait / narrow screens, events panel slides over as a sidebar */
+/* On portrait / narrow screens: slide over */
 @media (max-width: 700px) {
   .rt-events-panel {
     position: absolute;
@@ -485,7 +545,7 @@
     right: 0;
     bottom: 0;
     z-index: 50;
-    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -493,30 +553,39 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid #1a2e47;
+  padding: var(--sp-sm) var(--sp-md);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #90caf9;
+}
+
+.rt-events-header span {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--text-med);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
 .rt-events-close {
   background: transparent;
   border: none;
-  color: #546e7a;
+  color: var(--text-low);
   font-size: 1rem;
   cursor: pointer;
   padding: 4px;
   min-height: 36px;
   min-width: 36px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.rt-events-close:hover {
+  background: var(--bg-interactive);
+  color: var(--text-med);
+}
 .rt-events-close:active {
-  background: #162535;
+  background: var(--bg-selected);
 }
 
 .rt-events-list {
@@ -526,73 +595,73 @@
 }
 
 .rt-events-empty {
-  padding: 20px 12px;
-  font-size: 0.85rem;
-  color: #546e7a;
+  padding: var(--sp-xl) var(--sp-md);
+  font-size: var(--text-sm);
+  color: var(--text-low);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* Event item — full-width tap target to seek */
 .rt-event-item {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--sp-sm);
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
-  border-bottom: 1px solid #162535;
-  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--sp-sm) var(--sp-md);
   cursor: pointer;
   transition: background 0.1s;
   min-height: 48px;
   flex-wrap: wrap;
 }
-.rt-event-item:active {
-  background: #1a2e47;
-}
+.rt-event-item:hover { background: var(--bg-interactive); }
+.rt-event-item:active { background: var(--bg-selected); }
 
 .rt-ev-ts {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #1976d2;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ice);
   font-variant-numeric: tabular-nums;
-  min-width: 40px;
+  min-width: 42px;
   flex-shrink: 0;
 }
 
 .rt-ev-type {
-  font-size: 0.88rem;
-  color: #c0d4e8;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--text-high);
+  font-weight: 600;
   flex: 1;
 }
 
 .rt-ev-players {
-  font-size: 0.75rem;
-  color: #78909c;
+  font-size: var(--text-xs);
+  color: var(--text-med);
   width: 100%;
   margin-top: 2px;
-  padding-left: 48px; /* indent under timestamp */
+  padding-left: 50px;
 }
 
-/* --------------------------------------------------------
+/* ============================================================
    Player quick-pick overlay
-   -------------------------------------------------------- */
+   ============================================================ */
 .rt-picker-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(5, 12, 20, 0.75);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 100;
-  padding: 16px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding: var(--sp-lg);
+  padding-bottom: max(var(--sp-lg), env(safe-area-inset-bottom));
 }
 
-/* On landscape, show picker as a centered card */
 @media (orientation: landscape) {
   .rt-picker-overlay {
     align-items: center;
@@ -600,80 +669,88 @@
 }
 
 .rt-picker-card {
-  background: #0d1e2f;
-  border: 1px solid #2d4a6e;
-  border-radius: 16px;
-  padding: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--r-xl);
+  padding: var(--sp-xl);
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
 }
 
 .rt-picker-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--sp-lg);
 }
 
 .rt-picker-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #90caf9;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--text-high);
+  letter-spacing: -0.01em;
 }
 
 .rt-picker-skip {
   background: transparent;
-  border: 1.5px solid #2d3f55;
-  border-radius: 8px;
-  color: #78909c;
-  padding: 6px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-med);
+  padding: 6px var(--sp-md);
   min-height: 40px;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
 }
-.rt-picker-skip:active {
-  background: #162535;
+.rt-picker-skip:hover {
+  background: var(--bg-interactive);
+  color: var(--text-high);
 }
+.rt-picker-skip:active { background: var(--bg-selected); }
 
 .rt-picker-empty {
-  color: #546e7a;
-  font-size: 0.88rem;
-  margin-bottom: 12px;
+  color: var(--text-low);
+  font-size: var(--text-sm);
+  margin-bottom: var(--sp-md);
 }
 
-/* Player selection grid */
 .rt-picker-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-lg);
 }
 
 .rt-picker-btn {
-  background: #162535;
-  border: 2px solid #2d3f55;
-  border-radius: 10px;
-  color: #b0c4d8;
-  padding: 10px 16px;
+  background: var(--bg-raised);
+  border: 2px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-med);
+  padding: var(--sp-sm) var(--sp-lg);
   min-height: 48px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
   user-select: none;
   -webkit-user-select: none;
 }
+
+.rt-picker-btn:hover {
+  background: var(--bg-interactive);
+  color: var(--text-high);
+}
+
 .rt-picker-btn.selected {
-  background: #1565c0;
-  border-color: #42a5f5;
-  color: #fff;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-hi);
 }
 .rt-picker-btn:active {
-  background: #1976d2;
-  color: #fff;
+  background: var(--bg-selected);
 }
 
 .rt-picker-actions {
@@ -682,14 +759,14 @@
 }
 
 .rt-action-btn {
-  background: #243447;
-  border: 1.5px solid #2d3f55;
-  border-radius: 10px;
-  color: #e0e0e0;
-  padding: 10px 24px;
+  background: var(--bg-raised);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-high);
+  padding: var(--sp-sm) var(--sp-xl);
   min-height: 48px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: 700;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -697,34 +774,52 @@
 }
 
 .rt-action-btn-primary {
-  background: #1565c0;
-  border-color: #1976d2;
+  background: var(--accent);
+  border-color: var(--accent-hi);
   color: #fff;
+  box-shadow: 0 2px 12px rgba(45, 127, 249, 0.3);
+}
+.rt-action-btn-primary:hover {
+  background: var(--accent-hi);
 }
 .rt-action-btn-primary:active {
-  background: #0d47a1;
+  background: var(--accent-dim);
+  box-shadow: none;
 }
 .rt-action-btn-primary:disabled {
-  background: #0d2a4a;
-  color: #546e7a;
+  background: var(--bg-raised);
+  border-color: var(--border-subtle);
+  color: var(--text-low);
   cursor: default;
+  box-shadow: none;
 }
 
-/* --------------------------------------------------------
-   iPad landscape tweaks via media query
-   -------------------------------------------------------- */
+/* ============================================================
+   iPad landscape tweaks
+   ============================================================ */
 @media (orientation: landscape) and (min-width: 768px) {
-  /* Bigger tag buttons on landscape where there's horizontal room */
   .rt-tag-btn {
-    padding: 12px 20px;
-    min-height: 56px;
-    font-size: 0.95rem;
+    padding: var(--sp-md) var(--sp-xl);
+    min-height: 58px;
+    font-size: var(--text-md);
   }
 
-  /* Slightly larger transport buttons */
   .rt-tbtn {
-    padding: 8px 12px;
-    min-height: 46px;
-    font-size: 0.85rem;
+    padding: 8px var(--sp-md);
+    min-height: 48px;
+    font-size: var(--text-base);
+  }
+
+  .rt-tbtn-play {
+    min-width: 60px;
+    font-size: 1.25rem;
+  }
+
+  .rt-controls-bar {
+    padding: var(--sp-md) var(--sp-lg);
+  }
+
+  .rt-tag-strip {
+    padding: var(--sp-md) var(--sp-lg);
   }
 }

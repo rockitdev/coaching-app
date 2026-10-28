@@ -116,7 +116,10 @@ export default function App() {
       ) : (
         <div className="app-root">
           <header className="app-header">
-            <h1 className="app-title">Hockey Coach</h1>
+            <h1 className="app-title">
+              <span className="app-title-accent">HC</span>
+              <span>Coach</span>
+            </h1>
             <nav className="tab-nav">
               <button
                 className={`tab-btn${tab === 'video-review' ? ' active' : ''}`}
