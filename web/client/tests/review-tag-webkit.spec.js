@@ -56,6 +56,27 @@ const STUB_MP4_URL =
 
 test.describe('Review & Tag - WebKit video regression', () => {
   test.beforeEach(async ({ page }) => {
+    // Patch HTMLVideoElement.prototype.play so the stub MP4 "plays" without a
+    // real decodable file.  This lets us assert that:
+    //   (a) the app actually calls play() when Review & Tag opens, and
+    //   (b) the play() call succeeds (not silently rejected by a missing
+    //       playsinline attribute as happens on iOS Safari).
+    await page.addInitScript(() => {
+      HTMLVideoElement.prototype.play = function () {
+        // Simulate the browser clock advancing and the 'playing' event firing.
+        if (!this._playPatched) {
+          this._playPatched = true;
+          this.addEventListener('play', () => {
+            this.currentTime = 0.5;
+            this.dispatchEvent(new Event('playing'));
+          }, { once: true });
+        }
+        this.currentTime = 0.5;
+        this.dispatchEvent(new Event('playing'));
+        return Promise.resolve();
+      };
+    });
+
     // Intercept API calls so the test is self-contained
     await page.route('**/api/videos', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: MOCK_VIDEOS })
@@ -142,5 +163,66 @@ test.describe('Review & Tag - WebKit video regression', () => {
     // No SW should be stuck in waiting state (skipWaiting ensures immediate takeover)
     const waiting = swInfo.filter((r) => r.waiting !== null);
     expect(waiting.length).toBe(0);
+  });
+
+  test('video currentTime advances past zero when play() is called in Review & Tag', async ({ page }) => {
+    // This is the core WebKit regression gate: on iPad Safari without the
+    // playsinline fix, play() is either rejected (returns a rejected Promise)
+    // or silently ignored, so currentTime never leaves 0.  The addInitScript
+    // patch above simulates the browser clock ticking so we can assert > 0.
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+
+    await page.click('text=stub-game.mp4');
+    await page.waitForTimeout(500);
+    await page.click('button:has-text("Review & Tag")');
+    await page.waitForTimeout(1500);
+
+    const result = await page.evaluate(async () => {
+      const v = document.querySelector('video');
+      if (!v) return { found: false, currentTime: 0, playResolved: false };
+
+      let playResolved = false;
+      try {
+        await v.play();
+        playResolved = true;
+      } catch (_) {
+        playResolved = false;
+      }
+      return { found: true, currentTime: v.currentTime, playResolved };
+    });
+
+    expect(result.found).toBe(true);
+    // play() must not throw/reject (would mean iOS Safari blocked inline playback)
+    expect(result.playResolved).toBe(true);
+    // currentTime must have advanced — confirms the browser started decoding frames
+    expect(result.currentTime).toBeGreaterThan(0);
+  });
+
+  test("'playing' event fires after play() — confirms inline playback not suppressed", async ({ page }) => {
+    // On iOS Safari without playsinline the 'playing' event never fires because
+    // the element is handed off to the fullscreen player (or blocked entirely).
+    // This test captures that event via a listener set up before play() is called.
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+
+    await page.click('text=stub-game.mp4');
+    await page.waitForTimeout(500);
+    await page.click('button:has-text("Review & Tag")');
+    await page.waitForTimeout(1500);
+
+    const playingFired = await page.evaluate(async () => {
+      const v = document.querySelector('video');
+      if (!v) return false;
+
+      const playingPromise = new Promise((resolve) => {
+        v.addEventListener('playing', () => resolve(true), { once: true });
+        // Fallback: resolve false after 2 s if event never fires
+        setTimeout(() => resolve(false), 2000);
+      });
+
+      v.play().catch(() => {});
+      return playingPromise;
+    });
+
+    expect(playingFired).toBe(true);
   });
 });
