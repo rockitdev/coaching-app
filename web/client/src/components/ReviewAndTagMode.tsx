@@ -98,6 +98,11 @@ export default function ReviewAndTagMode() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
+  // scrubTime is set while the user is dragging the seek bar.
+  // We show the scrub position but don't seek until pointer release --
+  // this prevents rapid currentTime calls fighting the timeupdate listener
+  // and avoids excessive Range-request churn during a drag.
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
   const [eventsOpen, setEventsOpen] = useState(true);
   const [pickerEventId, setPickerEventId] = useState<number | null>(null);
@@ -324,15 +329,24 @@ export default function ReviewAndTagMode() {
           <div className="rt-controls-bar">
             {/* Single seek bar */}
             <div className="rt-seek-row">
-              <span className="rt-time">{formatTime(currentTime)}</span>
+              <span className="rt-time">{formatTime(scrubTime ?? currentTime)}</span>
               <input
                 type="range"
                 className="rt-seekbar"
                 min={0}
                 max={duration || 0}
                 step={0.1}
-                value={currentTime}
-                onChange={(e) => seekTo(parseFloat(e.target.value))}
+                value={scrubTime ?? currentTime}
+                // During drag: update the displayed position only (no seek).
+                // This prevents timeupdate from fighting the drag position and
+                // avoids triggering a Range request on every pixel of movement.
+                onChange={(e) => setScrubTime(parseFloat(e.target.value))}
+                // On release: commit the seek and clear the scrub position.
+                onPointerUp={(e) => {
+                  const t = parseFloat((e.target as HTMLInputElement).value);
+                  seekTo(t);
+                  setScrubTime(null);
+                }}
                 aria-label="Seek"
               />
               <span className="rt-time">{formatTime(duration)}</span>

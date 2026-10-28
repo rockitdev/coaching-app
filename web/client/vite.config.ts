@@ -44,6 +44,14 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
           {
+            // Video files: explicit NetworkOnly so the service worker NEVER
+            // caches or buffers video bytes. HTTP Range requests (byte-range
+            // seeking) must reach the Express server directly with their Range
+            // header intact. Caching would break seeking on large MP4 files.
+            urlPattern: /^\/videos\//,
+            handler: 'NetworkOnly',
+          },
+          {
             // API responses: network-first
             urlPattern: /^\/api\//,
             handler: 'NetworkFirst',
@@ -53,7 +61,7 @@ export default defineConfig({
             },
           },
         ],
-        // Never precache or runtime-cache video files
+        // Never serve /index.html as the navigation fallback for video or API paths
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/videos\//, /^\/api\//],
       },

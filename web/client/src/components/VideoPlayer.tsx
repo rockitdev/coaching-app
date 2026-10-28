@@ -22,19 +22,24 @@ export default function VideoPlayer({ playerRef, onReady }: Props) {
     const player = videojs(videoEl as HTMLVideoElement, {
       controls: true,
       autoplay: false,
-      preload: 'auto',
+      // 'metadata' only buffers enough to show duration/dimensions -- important
+      // for large game files (1-2 GB). 'auto' would start downloading immediately.
+      preload: 'metadata',
       fluid: true,
       playbackRates: [0.25, 0.5, 0.75, 1, 1.5, 2],
       controlBar: {
         playbackRateMenuButton: true,
       },
       html5: {
+        // overrideNative: false (default) -- use the browser's native <video>
+        // for MP4 files. Do NOT set nativeVideoTracks/nativeAudioTracks/
+        // nativeTextTracks to false here: those flags are only valid when
+        // overrideNative is true (VHS/MSE mode). With them false and
+        // overrideNative false, video.js can activate VHS for plain MP4s,
+        // breaking HTTP Range requests and seeking on non-fragmented files.
         vhs: {
           overrideNative: false,
         },
-        nativeVideoTracks: false,
-        nativeAudioTracks: false,
-        nativeTextTracks: false,
       },
     });
 
