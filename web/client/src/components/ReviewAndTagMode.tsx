@@ -133,6 +133,16 @@ export default function ReviewAndTagMode() {
     const onLoaded = () => {
       setDuration(player.duration() ?? 0);
       setCurrentTime(0);
+      // WebKit first-frame fix: with preload='metadata' the browser loads just
+      // enough to know the duration but may not decode even one frame, leaving
+      // the player area black until the user scrubs or presses play.  Seeking
+      // to a tiny positive offset (0.001 s) forces the decoder to fetch and
+      // render the first frame immediately so the viewer sees a poster frame
+      // rather than a black rectangle.  We only do this when paused (no seek
+      // storm during active playback) and only when at position 0 (first open).
+      if (player.paused() && (player.currentTime() ?? 0) < 0.01) {
+        player.currentTime(0.001);
+      }
     };
     const onRate = () => setSpeed(player.playbackRate() ?? 1);
 

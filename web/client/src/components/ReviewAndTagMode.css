@@ -183,6 +183,25 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /*
+   * WebKit black-frame compositing fix (primary CSS path).
+   *
+   * When a <video> element is a descendant of position:fixed + z-index (the
+   * .rt-mode overlay) combined with multiple overflow:hidden ancestors
+   * (.rt-body, .rt-main-col, .rt-video-wrap), WebKit composites the decoded
+   * video plane into a hidden GPU layer — the video "plays" (currentTime
+   * advances, audio works) but the display shows only a black rectangle.
+   *
+   * translate3d(0,0,0) promotes the element to its own compositor layer
+   * BEFORE decoding starts, ensuring frames are merged into the visible
+   * stacking context.  will-change pre-allocates the layer.
+   *
+   * This CSS rule fires before the JS equivalent in VideoPlayer.tsx (which
+   * runs on player.ready()) so there is no flash of black on load.
+   */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 /* ============================================================
