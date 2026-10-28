@@ -83,6 +83,10 @@
   -webkit-user-select: none;
 }
 .btn:active { opacity: 0.75; }
+.btn:focus-visible {
+  outline: 2px solid #90caf9;
+  outline-offset: 2px;
+}
 
 .btn-primary { background: #1565c0; color: #fff; }
 .btn-primary:hover { background: #1976d2; }
@@ -93,9 +97,10 @@
 .btn-danger { background: #b71c1c; color: #fff; }
 .btn-danger:hover { background: #c62828; }
 
+/* btn-sm keeps 44px min-height for touch targets; padding shrinks visually */
 .btn-sm {
   padding: 6px 12px;
-  min-height: 36px;
+  min-height: 44px;
   font-size: 0.85rem;
 }
 
