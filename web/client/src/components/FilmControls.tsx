@@ -5,7 +5,7 @@ import './FilmControls.css';
 
 const FRAME_RATE = 30;
 const FRAME_SEC = 1 / FRAME_RATE;
-const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2];
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5];
 
 interface Props {
   player: VjsPlayer | null;

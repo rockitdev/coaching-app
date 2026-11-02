@@ -30,7 +30,7 @@ export default function VideoPlayer({ playerRef, onReady }: Props) {
       // player UI instead of going full-screen in the system player. Without
       // this the <video> element appears unloaded/stalled on iPad/iPhone.
       playsinline: true,
-      playbackRates: [0.25, 0.5, 0.75, 1, 1.5, 2],
+      playbackRates: [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5],
       controlBar: {
         playbackRateMenuButton: true,
       },
