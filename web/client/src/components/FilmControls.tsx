@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import type VjsPlayer from 'video.js/dist/types/player';
 import type { GameEvent } from '../types';
+import { PlayIcon, PauseIcon } from './Icons';
+import SeekPreview, { useThumbnails } from './SeekPreview';
 import './FilmControls.css';
 
 const FRAME_RATE = 30;
 const FRAME_SEC = 1 / FRAME_RATE;
-const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2];
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5];
 
 interface Props {
+  videoId: number;
   player: VjsPlayer | null;
   events: GameEvent[];
   visible: boolean;
@@ -23,11 +26,16 @@ function clamp(t: number, dur: number) {
   return Math.max(0, Math.min(t, dur || 0));
 }
 
-export default function FilmControls({ player, events, visible }: Props) {
+export default function FilmControls({ videoId, player, events, visible }: Props) {
+  const thumbs = useThumbnails(videoId);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
+  // Position shown while dragging the seek bar; the seek is committed on
+  // release so a drag doesn't fire a Range request per pixel.
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
 
   // Sync state from player events
   useEffect(() => {
@@ -124,13 +132,11 @@ export default function FilmControls({ player, events, visible }: Props) {
     [player]
   );
 
-  const onSeekBarChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const t = parseFloat(e.target.value);
-      seekTo(t);
-    },
-    [seekTo]
-  );
+  function commitScrub() {
+    if (scrubTime === null) return;
+    seekTo(scrubTime);
+    setScrubTime(null);
+  }
 
   if (!visible) return null;
 
@@ -138,17 +144,35 @@ export default function FilmControls({ player, events, visible }: Props) {
     <div className="film-controls">
       {/* Seek bar */}
       <div className="film-seek-row">
-        <span className="film-time-small">{formatTime(currentTime)}</span>
+        <span className="film-time-small">{formatTime(scrubTime ?? currentTime)}</span>
+        <div
+          className="film-seek-track"
+          onPointerMove={(e) => {
+            if (e.pointerType !== 'mouse' || !duration) return;
+            // Thumb centre travels 10px in from each edge (20px thumb)
+            const r = e.currentTarget.getBoundingClientRect();
+            const frac = (e.clientX - r.left - 10) / (r.width - 20);
+            setHoverTime(Math.max(0, Math.min(1, frac)) * duration);
+          }}
+          onPointerLeave={() => setHoverTime(null)}
+        >
+        <div className="film-seek-travel">
+          <SeekPreview videoId={videoId} status={thumbs} time={scrubTime ?? hoverTime} duration={duration} />
+        </div>
         <input
           type="range"
           className="film-seekbar"
           min={0}
           max={duration || 0}
           step={0.1}
-          value={currentTime}
-          onChange={onSeekBarChange}
+          value={scrubTime ?? currentTime}
+          onChange={(e) => setScrubTime(parseFloat(e.target.value))}
+          onPointerUp={commitScrub}
+          onKeyUp={commitScrub}
+          onBlur={commitScrub}
           aria-label="Seek"
         />
+        </div>
         <span className="film-time-small">{formatTime(duration)}</span>
       </div>
 
@@ -166,8 +190,13 @@ export default function FilmControls({ player, events, visible }: Props) {
         <button className="film-btn film-btn-frame" onClick={frameBack} title="One frame back">
           ◀ 1f
         </button>
-        <button className="film-btn film-btn-play" onClick={togglePlay} title="Play / Pause">
-          {isPlaying ? '⏸' : '▶'}
+        <button
+          className="film-btn film-btn-play"
+          onClick={togglePlay}
+          title="Play / Pause (Space)"
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
         </button>
         <button className="film-btn film-btn-frame" onClick={frameFwd} title="One frame forward">
           1f ▶

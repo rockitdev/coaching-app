@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '../App';
 import * as api from '../api/client';
 import type { Video, GameEvent } from '../types';
@@ -9,12 +9,12 @@ import GameInfoModal from './GameInfoModal';
 import EventEditModal from './EventEditModal';
 import CompetitionsModal from './CompetitionsModal';
 import GenericModal from './GenericModal';
+import HighlightsModal from './HighlightsModal';
+import TeamSwitch from './TeamSwitch';
+import { TAG_KEYS, tagIndexForKey, isTypingTarget } from '../shortcuts';
+import { bindResume } from '../session';
+import { playerLabel } from '../hockey';
 import './VideoReview.css';
-
-const SHORTCUT_KEYS = [
-  '1','2','3','4','5','6','7','8','9','0',
-  'Q','W','E','R','T','Y','U','I','O','P',
-];
 
 function formatTime(secs: number): string {
   const m = Math.floor(secs / 60);
@@ -40,6 +40,9 @@ interface Props {
 
 export default function VideoReview({ isActive }: Props) {
   const {
+    currentTeamId,
+    currentTeam,
+    openTeamsModal,
     players,
     eventTypes,
     competitions,
@@ -63,13 +66,16 @@ export default function VideoReview({ isActive }: Props) {
   const [gameInfoOpen, setGameInfoOpen] = useState(false);
   const [competitionsOpen, setCompetitionsOpen] = useState(false);
   const [editEventOpen, setEditEventOpen] = useState(false);
+  const [highlightsOpen, setHighlightsOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<GameEvent | null>(null);
   const [addEventTypeOpen, setAddEventTypeOpen] = useState(false);
 
+  // The library shows one team's games at a time.
   const loadVideos = useCallback(async () => {
-    const vids = await api.getVideos().catch(() => []);
+    if (currentTeamId === null) return;
+    const vids = await api.getVideos(currentTeamId).catch(() => []);
     setVideos(vids);
-  }, []);
+  }, [currentTeamId]);
 
   useEffect(() => {
     loadVideos();
@@ -85,6 +91,26 @@ export default function VideoReview({ isActive }: Props) {
       loadVideoEvents(currentVideo.id);
     }
   }, [currentVideo, loadVideoEvents]);
+
+  // Latest video for the player's ready callback, which is bound once at mount.
+  const currentVideoRef = useRef(currentVideo);
+  currentVideoRef.current = currentVideo;
+
+  // A freshly created player gets its source here rather than from the effect
+  // below: in dev StrictMode the player is created, disposed and recreated, and
+  // the effect only reaches the first (disposed) instance -- leaving the first
+  // game opened with no source at all.
+  function handlePlayerReady(p: NonNullable<typeof playerRef.current>) {
+    setPlayerLoaded(true);
+    // One player serves every game in the library, so resume looks up the
+    // current game on each event.
+    bindResume(p, () => currentVideoRef.current?.id ?? null);
+    const v = currentVideoRef.current;
+    const src = v ? `/videos/${v.file_path}` : null;
+    if (src && !p.currentSrc().endsWith(src)) {
+      p.src({ src, type: 'video/mp4' });
+    }
+  }
 
   // Set video source when currentVideo changes
   useEffect(() => {
@@ -180,8 +206,10 @@ export default function VideoReview({ isActive }: Props) {
     if (!isActive) return;
 
     function handleKey(e: KeyboardEvent) {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
-      if ((e.target as HTMLElement).isContentEditable) return;
+      if (isTypingTarget(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Leave the keyboard to any open dialog.
+      if (document.querySelector('.modal-overlay')) return;
 
       const p = playerRef.current;
       if (!p || !currentVideo) return;
@@ -229,8 +257,7 @@ export default function VideoReview({ isActive }: Props) {
         }
       }
 
-      const key = e.key.toUpperCase();
-      const idx = SHORTCUT_KEYS.indexOf(key);
+      const idx = tagIndexForKey(e);
       if (idx !== -1 && idx < eventTypes.length) {
         tagEvent(eventTypes[idx].id);
       }
@@ -264,8 +291,13 @@ export default function VideoReview({ isActive }: Props) {
     <div className="video-review">
       {/* ---- Library sidebar (game list) ---- */}
       <aside className={`vr-library${libraryOpen ? ' open' : ''}`}>
+        {/* Narrow screens only: the drawer covers the header's switcher */}
+        <TeamSwitch className="vr-lib-team-switch" onManage={openTeamsModal} />
         <div className="vr-lib-header">
-          <span className="vr-lib-heading">Library</span>
+          <span className="vr-lib-heading">
+            Library
+            {currentTeam && <span className="vr-lib-team">{currentTeam.name}</span>}
+          </span>
           <div className="vr-lib-actions">
             <button
               className="btn btn-secondary btn-sm"
@@ -286,7 +318,7 @@ export default function VideoReview({ isActive }: Props) {
         <div className="vr-lib-list">
           {videos.length === 0 && (
             <div className="vr-lib-empty">
-              <span>No games yet.</span>
+              <span>No {currentTeam ? `${currentTeam.name} ` : ''}games yet.</span>
               <span>Upload a video to get started.</span>
             </div>
           )}
@@ -374,12 +406,21 @@ export default function VideoReview({ isActive }: Props) {
                 )}
               </div>
             </div>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setGameInfoOpen(true)}
-            >
-              Edit Info
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setHighlightsOpen(true)}
+                title="Export tagged clips as one highlight reel"
+              >
+                Highlights
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setGameInfoOpen(true)}
+              >
+                Edit Info
+              </button>
+            </div>
           </div>
         )}
 
@@ -396,9 +437,10 @@ export default function VideoReview({ isActive }: Props) {
           <div className="vr-player-wrap">
             <VideoPlayer
               playerRef={playerRef}
-              onReady={() => setPlayerLoaded(true)}
+              onReady={handlePlayerReady}
             />
             <FilmControls
+              videoId={currentVideo.id}
               player={playerRef.current}
               events={currentVideoEvents}
               visible={!!currentVideo}
@@ -426,11 +468,11 @@ export default function VideoReview({ isActive }: Props) {
                     key={et.id}
                     className={`event-tag-btn${et.is_custom ? ' custom' : ''}`}
                     onClick={() => tagEvent(et.id)}
-                    title={idx < SHORTCUT_KEYS.length ? `Press ${SHORTCUT_KEYS[idx]}` : undefined}
+                    title={idx < TAG_KEYS.length ? `Press ${TAG_KEYS[idx]}` : undefined}
                   >
                     <span className="event-tag-name">{et.name}</span>
-                    {idx < SHORTCUT_KEYS.length && (
-                      <span className="event-tag-shortcut">{SHORTCUT_KEYS[idx]}</span>
+                    {idx < TAG_KEYS.length && (
+                      <span className="event-tag-shortcut">{TAG_KEYS[idx]}</span>
                     )}
                   </button>
                 ))}
@@ -440,6 +482,19 @@ export default function VideoReview({ isActive }: Props) {
             {/* Player selection */}
             <div className="vr-section">
               <h2 className="vr-section-title">Players <span className="vr-optional">(optional)</span></h2>
+              {selectedPlayerIds.size > 0 && (
+                <div className="vr-sticky-note" role="status">
+                  <span>
+                    Attaching to every tag:{' '}
+                    <strong>
+                      {players.filter((p) => selectedPlayerIds.has(p.id)).map(playerLabel).join(', ')}
+                    </strong>
+                  </span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setSelectedPlayerIds(new Set())}>
+                    Clear
+                  </button>
+                </div>
+              )}
               <div className="player-chip-grid">
                 {players.map((p) => (
                   <button
@@ -447,7 +502,7 @@ export default function VideoReview({ isActive }: Props) {
                     className={`player-chip${selectedPlayerIds.has(p.id) ? ' selected' : ''}`}
                     onClick={() => togglePlayerSelect(p.id)}
                   >
-                    {p.name}
+                    {playerLabel(p)}
                   </button>
                 ))}
               </div>
@@ -466,19 +521,21 @@ export default function VideoReview({ isActive }: Props) {
               ) : (
                 <div className="events-list">
                   {currentVideoEvents.map((ev) => (
-                    <div
-                      key={ev.id}
-                      className="event-item"
-                      onClick={() => seekToEvent(ev.timestamp)}
-                    >
-                      <span className="event-ts">{formatTime(ev.timestamp)}</span>
-                      <span className="event-type-label">{ev.event_type_name}</span>
-                      <span className="event-players-label">
-                        {ev.players.map((p) => p.name).join(', ')}
-                      </span>
+                    <div key={ev.id} className="event-item">
+                      <button
+                        className="event-seek-btn"
+                        onClick={() => seekToEvent(ev.timestamp)}
+                        aria-label={`Play ${ev.event_type_name} at ${formatTime(ev.timestamp)}`}
+                      >
+                        <span className="event-ts">{formatTime(ev.timestamp)}</span>
+                        <span className="event-type-label">{ev.event_type_name}</span>
+                        <span className="event-players-label">
+                          {ev.players.map(playerLabel).join(', ')}
+                        </span>
+                      </button>
                       <button
                         className="btn btn-secondary btn-sm event-edit-btn"
-                        onClick={(e) => { e.stopPropagation(); openEventEdit(ev); }}
+                        onClick={() => openEventEdit(ev)}
                       >
                         Edit
                       </button>
@@ -511,9 +568,19 @@ export default function VideoReview({ isActive }: Props) {
           await loadVideos();
         }}
       />
+      {currentVideo && (
+        <HighlightsModal
+          open={highlightsOpen}
+          videoId={currentVideo.id}
+          events={currentVideoEvents}
+          eventTypes={eventTypes}
+          onClose={() => setHighlightsOpen(false)}
+        />
+      )}
       <EventEditModal
         open={editEventOpen}
         event={editingEvent}
+        events={currentVideoEvents}
         onClose={() => setEditEventOpen(false)}
         onSaved={() => currentVideo && loadVideoEvents(currentVideo.id)}
         onDeleted={() => currentVideo && loadVideoEvents(currentVideo.id)}

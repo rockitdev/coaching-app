@@ -42,6 +42,17 @@ export default defineConfig({
       workbox: {
         // Only cache the app shell -- never cache videos (they are streamed)
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Bump this version whenever you need to force all devices to drop
+        // their old caches and install the new service worker immediately.
+        // Combined with skipWaiting + clientsClaim below, a normal page reload
+        // is enough -- no manual "clear site data" or app reinstall needed.
+        cacheId: 'hockey-coach-v2',
+        // Take over immediately on update so a fresh reload gets the new SW.
+        // Without these, the updated SW stays in "waiting" state until every
+        // tab is closed -- meaning an old SW with broken video caching can
+        // keep running even after the user refreshes.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             // Video files: explicit NetworkOnly so the service worker NEVER
@@ -52,18 +63,33 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
+            // Highlight reel downloads: one-off files, never cache them.
+            urlPattern: /^\/exports\//,
+            handler: 'NetworkOnly',
+          },
+          {
+            // Timeline thumbnail sprites: immutable once generated, so serve
+            // from cache -- makes scrub previews instant after first view.
+            urlPattern: /^\/analysis\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'hockey-coach-v2-thumbs',
+              expiration: { maxEntries: 600 },
+            },
+          },
+          {
             // API responses: network-first
             urlPattern: /^\/api\//,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache',
+              cacheName: 'hockey-coach-v2-api',
               networkTimeoutSeconds: 10,
             },
           },
         ],
         // Never serve /index.html as the navigation fallback for video or API paths
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/videos\//, /^\/api\//],
+        navigateFallbackDenylist: [/^\/videos\//, /^\/api\//, /^\/analysis\//, /^\/exports\//],
       },
       devOptions: {
         // Enable PWA in dev mode so service worker registers for testing
@@ -85,6 +111,14 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/videos': {
+        target: 'http://app:4321',
+        changeOrigin: true,
+      },
+      '/analysis': {
+        target: 'http://app:4321',
+        changeOrigin: true,
+      },
+      '/exports': {
         target: 'http://app:4321',
         changeOrigin: true,
       },

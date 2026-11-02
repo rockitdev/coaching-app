@@ -15,7 +15,7 @@
   /* Text */
   --text-high:   #e8eef4;
   --text-med:    #7a96b2;
-  --text-low:    #3d5570;
+  --text-low:    #6b8399;  /* 4.9:1 on --bg-base (was #3d5570, 2.5:1) */
 
   /* Borders */
   --border-subtle:  #131f2c;

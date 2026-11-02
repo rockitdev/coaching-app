@@ -1,0 +1,45 @@
+/* Frame preview floating above a seek bar while hovering or dragging */
+.seek-preview {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  /* Centred on the pointer; `left` is clamped inline so the 170px-wide
+     preview never spills past either end of the bar. */
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.seek-preview-frame {
+  border-radius: 4px;
+  background-repeat: no-repeat;
+  background-color: #000;
+}
+
+.seek-preview-pending {
+  width: 160px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-med);
+  background: var(--bg-raised);
+  border-radius: 4px;
+}
+
+.seek-preview-time {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-high);
+  font-variant-numeric: tabular-nums;
+}

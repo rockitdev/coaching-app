@@ -264,13 +264,39 @@
 .vr-player-wrap {
   background: #000;
   flex-shrink: 0;
-  max-height: 55vh;
+  /* A fixed share of the column: the video letterboxes inside it and the
+     film controls always sit directly underneath. */
+  height: 58vh;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
 }
 
-.vr-player-wrap .vjs-fluid {
-  max-height: 38vh;
+/* video.js "fluid" sizes itself by padding-top (aspect ratio from width),
+   which max-height cannot clamp -- on a wide screen the video overflowed and
+   covered the controls and tag panel. Strip it and fill the box instead. */
+.vr-player-wrap [data-vjs-player] {
+  flex: 1;
+  min-height: 0;
+}
+
+.vr-player-wrap .vjs-host,
+.vr-player-wrap .video-js {
+  width: 100%;
+  height: 100%;
+}
+
+.vr-player-wrap .vjs-fluid:not(.vjs-audio-only-mode) {
+  padding-top: 0 !important;
+  height: 100% !important;
+}
+
+.vr-player-wrap .vjs-tech {
+  object-fit: contain;
+}
+
+.vr-player-wrap .film-controls {
+  flex-shrink: 0;
 }
 
 /* Bottom panel: tag events + players + events list */
@@ -443,16 +469,46 @@
   display: flex;
   align-items: center;
   gap: var(--sp-sm);
-  padding: var(--sp-sm) var(--sp-md);
+  padding-right: var(--sp-sm);
   background: var(--bg-raised);
   border-radius: var(--r-md);
-  cursor: pointer;
   transition: background 0.1s;
   min-height: var(--touch-min);
   border: 1px solid var(--border-subtle);
 }
 .event-item:hover { background: var(--bg-interactive); }
-.event-item:active { background: var(--bg-selected); }
+
+.event-seek-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) var(--sp-md);
+  min-height: var(--touch-min);
+  background: transparent;
+  border: none;
+  border-radius: var(--r-md);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.event-seek-btn:active { background: var(--bg-selected); }
+
+.vr-sticky-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  margin: var(--sp-xs) 0 var(--sp-sm);
+  padding: 6px var(--sp-md);
+  border: 1px solid var(--amber);
+  border-radius: var(--r-md);
+  background: var(--amber-bg);
+  color: var(--amber-hi);
+  font-size: var(--text-sm);
+}
 
 .event-ts {
   font-size: var(--text-sm);
@@ -524,5 +580,32 @@
 
   .event-type-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+}
+
+/* Which team the library is showing */
+.vr-lib-team {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent-hi);
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+
+/* Team switcher inside the library drawer, narrow screens only */
+.vr-lib-team-switch {
+  margin: var(--sp-sm) var(--sp-sm) 0;
+  flex-shrink: 0;
+}
+.vr-lib-team-switch .team-switch-btn {
+  flex: 1;
+}
+.vr-lib-team-switch .team-switch-manage {
+  flex: 0 0 auto;
+}
+@media (min-width: 900px) {
+  .vr-lib-team-switch {
+    display: none;
   }
 }

@@ -1,0 +1,104 @@
+/* ---- Shot marks on a Rink (units are feet) ---- */
+.shot-mark { --team: var(--text-med); }
+.shot-mark.team-us { --team: var(--amber); }
+.shot-mark.team-them { --team: var(--ice); }
+.shot-mark-fill, .shot-mark .shot-mark-fill {
+  fill: var(--team);
+  /* 2px-equivalent surface ring keeps overlapping marks distinct */
+  stroke: #0f1c29;
+  stroke-width: 0.4;
+}
+.shot-mark .shot-mark-ring { fill: none; stroke: var(--team); stroke-width: 0.6; }
+.shot-mark-hollow { fill: none; stroke: var(--team); stroke-width: 0.6; }
+.shot-mark-cross { fill: none; stroke: var(--team); stroke-width: 0.7; stroke-linecap: round; }
+.shot-mark-unknown { opacity: 0.7; }
+
+/* ---- Editor ---- */
+.shot-details {
+  display: flex;
+  gap: var(--sp-md);
+  align-items: flex-start;
+}
+
+.shot-details-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shot-seg-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+
+.shot-seg-label {
+  flex: 0 0 68px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-med);
+}
+
+.shot-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.shot-seg-btn {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-raised);
+  color: var(--text-med);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.shot-seg-btn:hover { color: var(--text-high); }
+.shot-seg-btn.active {
+  background: var(--bg-selected);
+  border-color: var(--border-accent);
+  color: var(--text-high);
+}
+.shot-seg-btn.is-goal.active {
+  background: var(--amber-bg);
+  border-color: var(--amber);
+  color: var(--amber-hi);
+}
+
+.shot-details-rink {
+  flex: 0 0 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.shot-details-rink-caption {
+  font-size: var(--text-xs);
+  color: var(--text-med);
+  min-height: 18px;
+}
+
+.shot-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-hi);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.shot-details.compact .shot-seg-btn { min-height: 30px; padding: 0 8px; }
+.shot-details.compact .shot-details-rink { flex-basis: 112px; }
+
+@media (max-width: 640px) {
+  .shot-details { flex-direction: column; }
+  .shot-details-rink { flex-basis: auto; width: 160px; align-self: center; }
+}
