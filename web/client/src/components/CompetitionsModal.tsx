@@ -65,7 +65,7 @@ export default function CompetitionsModal({ open, onClose }: Props) {
           </div>
         </div>
 
-        {error && <p style={{ color: '#ef5350', fontSize: '0.85rem', marginTop: 8 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', marginTop: 8 }}>{error}</p>}
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Close</button>

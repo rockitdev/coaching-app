@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { useApp } from '../App';
 import * as api from '../api/client';
-import type { PlayerEvent } from '../types';
-import GenericModal from './GenericModal';
+import type { Player, PlayerEvent } from '../types';
+import PlayerModal from './PlayerModal';
+import { periodLabel, playerLabel } from '../hockey';
+import { savePosition } from '../session';
 import './PlayerManagement.css';
 
 function formatTime(secs: number): string {
@@ -17,7 +19,7 @@ interface Props {
 }
 
 export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
-  const { players, refreshPlayers, openVideo } = useApp();
+  const { players, refreshPlayers, openVideo, currentTeam, currentTeamId } = useApp();
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [playerEvents, setPlayerEvents] = useState<PlayerEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -25,7 +27,7 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
   // Add/edit modals
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editPlayer, setEditPlayer] = useState<{ id: number; name: string } | null>(null);
+  const [editPlayer, setEditPlayer] = useState<Player | null>(null);
 
   const selectPlayer = useCallback(async (playerId: number) => {
     setSelectedPlayerId(playerId);
@@ -57,7 +59,10 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
       game_date: ev.game_date,
       competition_id: ev.competition_id,
       competition_name: ev.competition_name,
+      team_id: ev.team_id,
     };
+    // Opening the game resumes at its saved position, so point that at the event.
+    savePosition(ev.video_id, ev.timestamp);
     openVideo(video);
     onSwitchToVideo();
     // Seek after switching tab: video player loads after openVideo sets src
@@ -91,7 +96,9 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
     <div className="player-mgmt">
       <div className="player-mgmt-left">
         <div className="player-mgmt-header">
-          <h2 className="vr-section-title" style={{ margin: 0 }}>Players</h2>
+          <h2 className="vr-section-title" style={{ margin: 0 }}>
+            {currentTeam ? `${currentTeam.name} Players` : 'Players'}
+          </h2>
           <button className="btn btn-primary btn-sm" onClick={() => setAddOpen(true)}>
             + Add Player
           </button>
@@ -103,7 +110,11 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
               className={`player-item${selectedPlayerId === p.id ? ' selected' : ''}`}
               onClick={() => selectPlayer(p.id)}
             >
-              <span className="player-name">{p.name}</span>
+              <span className="player-name">
+                {p.number !== null && <span className="player-number">#{p.number}</span>}
+                {p.name}
+                {p.position && <span className="player-position">{p.position}</span>}
+              </span>
               <div className="player-actions">
                 <button
                   className="btn btn-secondary btn-sm"
@@ -133,7 +144,7 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
 
       <div className="player-mgmt-right">
         <h2 className="vr-section-title" style={{ margin: '0 0 12px' }}>
-          {selectedPlayer ? `${selectedPlayer.name}'s Events` : 'Select a Player'}
+          {selectedPlayer ? `${playerLabel(selectedPlayer)}: events` : 'Select a Player'}
         </h2>
 
         {loadingEvents && <div className="empty-msg">Loading...</div>}
@@ -152,8 +163,11 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
                 onClick={() => handleEventClick(ev)}
               >
                 <span className="event-ts">{formatTime(ev.timestamp)}</span>
-                <span className="event-type-label">{ev.event_type_name}</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#546e7a' }}>
+                <span className="event-type-label">
+                  {ev.event_type_name}
+                  {ev.period !== null && <span className="player-event-period"> · {periodLabel(ev.period)}</span>}
+                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 'var(--text-xs)', color: 'var(--text-low)' }}>
                   ▶ View
                 </span>
               </div>
@@ -162,30 +176,27 @@ export default function PlayerManagement({ isActive, onSwitchToVideo }: Props) {
         ))}
       </div>
 
-      <GenericModal
+      <PlayerModal
         title="Add Player"
-        placeholder="Player name"
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onSave={async (name) => {
-          await api.addPlayer(name);
+        onSave={async (fields) => {
+          await api.addPlayer({ ...fields, team_id: currentTeamId });
           await refreshPlayers();
         }}
       />
 
-      {editPlayer && (
-        <GenericModal
-          title="Edit Player"
-          placeholder="Player name"
-          initialValue={editPlayer.name}
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          onSave={async (name) => {
-            await api.updatePlayer(editPlayer.id, name);
-            await refreshPlayers();
-          }}
-        />
-      )}
+      <PlayerModal
+        title="Edit Player"
+        player={editPlayer}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSave={async (fields) => {
+          if (!editPlayer) return;
+          await api.updatePlayer(editPlayer.id, fields);
+          await refreshPlayers();
+        }}
+      />
     </div>
   );
 }

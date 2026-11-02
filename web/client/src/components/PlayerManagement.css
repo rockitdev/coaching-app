@@ -144,3 +144,19 @@
   }
   .player-mgmt-right { min-height: 200px; }
 }
+
+.player-number {
+  display: inline-block;
+  min-width: 2.5em;
+  color: var(--amber);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-position,
+.player-event-period {
+  margin-left: 6px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-med);
+}

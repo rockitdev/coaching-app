@@ -66,7 +66,7 @@ export default function GenericModal({
             onKeyDown={handleKey}
           />
         </div>
-        {error && <p style={{ color: '#ef5350', fontSize: '0.85rem', marginBottom: 8 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', marginBottom: 8 }}>{error}</p>}
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>

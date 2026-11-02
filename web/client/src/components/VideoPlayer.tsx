@@ -65,7 +65,7 @@ export default function VideoPlayer({ playerRef, onReady }: Props) {
 
   return (
     <div data-vjs-player style={{ width: '100%' }}>
-      <div ref={videoRef} />
+      <div ref={videoRef} className="vjs-host" />
     </div>
   );
 }

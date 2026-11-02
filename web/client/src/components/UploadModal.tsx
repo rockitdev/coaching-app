@@ -18,11 +18,12 @@ interface Props {
 }
 
 export default function UploadModal({ open, onClose, onUploaded }: Props) {
-  const { competitions } = useApp();
+  const { competitions, teams, currentTeamId } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [gameDate, setGameDate] = useState('');
   const [competitionId, setCompetitionId] = useState<string>('');
+  const [teamId, setTeamId] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -41,8 +42,10 @@ export default function UploadModal({ open, onClose, onUploaded }: Props) {
       // Default competition = Regular season
       const rs = competitions.find((c) => c.name === 'Regular season');
       setCompetitionId(rs ? String(rs.id) : '');
+      // Default team = the one the library is showing
+      setTeamId(currentTeamId !== null ? String(currentTeamId) : '');
     }
-  }, [open, competitions]);
+  }, [open, competitions, currentTeamId]);
 
   if (!open) return null;
 
@@ -76,6 +79,7 @@ export default function UploadModal({ open, onClose, onUploaded }: Props) {
         file,
         gameDate || null,
         competitionId ? parseInt(competitionId) : null,
+        teamId ? parseInt(teamId) : null,
         (pct, label) => {
           setProgress(pct);
           setProgressLabel(label);
@@ -142,6 +146,21 @@ export default function UploadModal({ open, onClose, onUploaded }: Props) {
         {error && (
           <div className="upload-error">{error}</div>
         )}
+
+        {/* Team */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="upload-team">Team</label>
+          <select
+            id="upload-team"
+            className="form-input"
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+          >
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Game date */}
         <div className="form-group">

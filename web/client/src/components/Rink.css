@@ -1,0 +1,25 @@
+/* Half-rink diagram (see Rink.tsx). Strokes are in feet, so keep them thin. */
+.rink {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: manipulation;
+  user-select: none;
+}
+.rink-pickable { cursor: crosshair; }
+
+.rink-ice { fill: #0f1c29; }
+.rink-boards { fill: none; stroke: var(--text-low); stroke-width: 0.6; }
+.rink-goal-line { stroke: #c2414b; stroke-width: 0.4; }
+.rink-blue-line { fill: #3a6fd8; opacity: 0.8; }
+.rink-red-line { fill: #c2414b; opacity: 0.8; }
+.rink-circle { fill: none; stroke: #c2414b; stroke-width: 0.35; opacity: 0.7; }
+.rink-dot { fill: #c2414b; opacity: 0.8; }
+.rink-crease { fill: rgba(77, 184, 212, 0.18); stroke: #c2414b; stroke-width: 0.3; }
+.rink-net { fill: none; stroke: var(--text-high); stroke-width: 0.5; }
+.rink-home-plate {
+  fill: rgba(232, 238, 244, 0.04);
+  stroke: var(--text-med);
+  stroke-width: 0.35;
+  stroke-dasharray: 1.2 1;
+}

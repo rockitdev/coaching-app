@@ -63,6 +63,21 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
+            // Highlight reel downloads: one-off files, never cache them.
+            urlPattern: /^\/exports\//,
+            handler: 'NetworkOnly',
+          },
+          {
+            // Timeline thumbnail sprites: immutable once generated, so serve
+            // from cache -- makes scrub previews instant after first view.
+            urlPattern: /^\/analysis\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'hockey-coach-v2-thumbs',
+              expiration: { maxEntries: 600 },
+            },
+          },
+          {
             // API responses: network-first
             urlPattern: /^\/api\//,
             handler: 'NetworkFirst',
@@ -74,7 +89,7 @@ export default defineConfig({
         ],
         // Never serve /index.html as the navigation fallback for video or API paths
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/videos\//, /^\/api\//],
+        navigateFallbackDenylist: [/^\/videos\//, /^\/api\//, /^\/analysis\//, /^\/exports\//],
       },
       devOptions: {
         // Enable PWA in dev mode so service worker registers for testing
@@ -96,6 +111,14 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/videos': {
+        target: 'http://app:4321',
+        changeOrigin: true,
+      },
+      '/analysis': {
+        target: 'http://app:4321',
+        changeOrigin: true,
+      },
+      '/exports': {
         target: 'http://app:4321',
         changeOrigin: true,
       },

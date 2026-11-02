@@ -18,6 +18,25 @@
   gap: var(--sp-sm);
 }
 
+/* Hosts the seek bar plus its hover/drag frame preview */
+.film-seek-track {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.film-seek-track .film-seekbar { width: 100%; }
+
+/* Spans the thumb centre's travel (20px thumb) so previews line up */
+.film-seek-travel {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
 .film-time-small {
   font-size: var(--text-xs);
   color: var(--ice);
@@ -78,6 +97,9 @@
 }
 
 .film-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg-raised);
   border: 1.5px solid var(--border-default);
   border-radius: var(--r-md);

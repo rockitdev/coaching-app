@@ -2,9 +2,17 @@ import type {
   Player,
   EventType,
   Competition,
+  TeamRecord,
   Video,
   GameEvent,
   PlayerEvent,
+  ThumbnailStatus,
+  EventContext,
+  ZoneRule,
+  ExportStatus,
+  Team,
+  ShotDetails,
+  Shot,
 } from '../types';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -22,21 +30,28 @@ function json<T>(res: Response): Promise<T> {
 // Players
 // ---------------------------------------------------------------------------
 
-export const getPlayers = (): Promise<Player[]> =>
-  fetch('/api/players').then((r) => json<Player[]>(r));
+export const getPlayers = (teamId: number | null): Promise<Player[]> =>
+  fetch(teamId !== null ? `/api/players?teamId=${teamId}` : '/api/players').then((r) => json<Player[]>(r));
 
-export const addPlayer = (name: string): Promise<Player> =>
+export interface PlayerFields {
+  name: string;
+  number: number | null;
+  position: string | null;
+  team_id?: number | null;
+}
+
+export const addPlayer = (fields: PlayerFields): Promise<Player> =>
   fetch('/api/players', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(fields),
   }).then((r) => json<Player>(r));
 
-export const updatePlayer = (id: number, name: string): Promise<Player> =>
+export const updatePlayer = (id: number, fields: PlayerFields): Promise<Player> =>
   fetch(`/api/players/${id}`, {
     method: 'PUT',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(fields),
   }).then((r) => json<Player>(r));
 
 export const deletePlayer = (id: number): Promise<{ id: number; changes: number }> =>
@@ -62,6 +77,30 @@ export const addEventType = (name: string, isCustom: boolean): Promise<EventType
   }).then((r) => json<EventType>(r));
 
 // ---------------------------------------------------------------------------
+// Teams
+// ---------------------------------------------------------------------------
+
+export const getTeams = (): Promise<TeamRecord[]> =>
+  fetch('/api/teams').then((r) => json<TeamRecord[]>(r));
+
+export const addTeam = (name: string): Promise<TeamRecord> =>
+  fetch('/api/teams', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ name }),
+  }).then((r) => json<TeamRecord>(r));
+
+export const renameTeam = (id: number, name: string): Promise<TeamRecord> =>
+  fetch(`/api/teams/${id}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ name }),
+  }).then((r) => json<TeamRecord>(r));
+
+export const deleteTeam = (id: number): Promise<{ id: number; changes: number }> =>
+  fetch(`/api/teams/${id}`, { method: 'DELETE' }).then((r) => json(r));
+
+// ---------------------------------------------------------------------------
 // Competitions
 // ---------------------------------------------------------------------------
 
@@ -79,24 +118,29 @@ export const addCompetition = (name: string): Promise<Competition> =>
 // Videos
 // ---------------------------------------------------------------------------
 
-export const getVideos = (): Promise<Video[]> =>
-  fetch('/api/videos').then((r) => json<Video[]>(r));
+export const getVideos = (teamId?: number | null): Promise<Video[]> =>
+  fetch(teamId != null ? `/api/videos?teamId=${teamId}` : '/api/videos').then((r) => json<Video[]>(r));
+
+export const getThumbnails = (videoId: number): Promise<ThumbnailStatus> =>
+  fetch(`/api/videos/${videoId}/thumbnails`).then((r) => json(r));
 
 export const updateVideoMeta = (
   id: number,
   game_date: string | null,
-  competition_id: number | null
+  competition_id: number | null,
+  team_id: number | null
 ): Promise<Video> =>
   fetch(`/api/videos/${id}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ game_date, competition_id }),
+    body: JSON.stringify({ game_date, competition_id, team_id }),
   }).then((r) => json<Video>(r));
 
 export const uploadVideo = (
   file: File,
   game_date: string | null,
   competition_id: number | null,
+  team_id: number | null,
   onProgress: (pct: number, label: string) => void
 ): Promise<Video> => {
   return new Promise((resolve, reject) => {
@@ -105,6 +149,7 @@ export const uploadVideo = (
     if (game_date) formData.append('game_date', game_date);
     if (competition_id != null)
       formData.append('competition_id', String(competition_id));
+    if (team_id != null) formData.append('team_id', String(team_id));
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload');
@@ -153,12 +198,37 @@ export const getEvent = (eventId: number): Promise<GameEvent & { video_id: numbe
 export const addEvent = (
   videoId: number,
   eventTypeId: number,
-  timestamp: number
-): Promise<{ id: number }> =>
+  timestamp: number,
+  context: Partial<EventContext> & Partial<ShotDetails> = {}
+): Promise<{ id: number } & Partial<ShotDetails>> =>
   fetch('/api/events', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ videoId, eventTypeId, timestamp }),
+    body: JSON.stringify({ videoId, eventTypeId, timestamp, ...context }),
+  }).then((r) => json(r));
+
+export type EventPatch = Partial<EventContext> & Partial<ShotDetails> & {
+  timestamp?: number;
+  event_type_id?: number;
+  // Also move the later tags still in this tag's old period (see server.js).
+  cascade_period?: boolean;
+};
+
+export const updateEvent = (eventId: number, patch: EventPatch): Promise<{ id: number; cascaded: number[] }> =>
+  fetch(`/api/events/${eventId}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(patch),
+  }).then((r) => json(r));
+
+export const updateEventType = (
+  id: number,
+  patch: { name?: string; zone_rule?: ZoneRule }
+): Promise<EventType> =>
+  fetch(`/api/event-types/${id}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(patch),
   }).then((r) => json(r));
 
 export const updateEventPlayers = (
@@ -185,3 +255,40 @@ export const deleteEvent = (
   eventId: number
 ): Promise<{ eventId: number; deleted: boolean }> =>
   fetch(`/api/events/${eventId}`, { method: 'DELETE' }).then((r) => json(r));
+
+// ---------------------------------------------------------------------------
+// Highlight reels
+// ---------------------------------------------------------------------------
+
+export interface ExportRequest {
+  videoId: number;
+  typeIds: number[];
+  team: Team | null;
+  pre: number;
+  post: number;
+  captions: boolean;
+}
+
+export const startExport = (req: ExportRequest): Promise<ExportStatus> =>
+  fetch('/api/exports', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(req),
+  }).then((r) => json<ExportStatus>(r));
+
+export const getExport = (id: string): Promise<ExportStatus> =>
+  fetch(`/api/exports/${id}`).then((r) => json<ExportStatus>(r));
+
+export const exportDownloadUrl = (id: string): string => `/exports/${id}`;
+
+// ---------------------------------------------------------------------------
+// Shot map
+// ---------------------------------------------------------------------------
+
+export const getShots = (videoId?: number, teamId?: number | null): Promise<Shot[]> => {
+  const q = new URLSearchParams();
+  if (videoId !== undefined) q.set('videoId', String(videoId));
+  if (teamId != null) q.set('teamId', String(teamId));
+  const qs = q.toString();
+  return fetch(qs ? `/api/shots?${qs}` : '/api/shots').then((r) => json<Shot[]>(r));
+};
