@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     autoplay: false,
     preload: 'auto',
     fluid: true,
+    playbackRates: [0.5, 1, 1.5, 2, 3, 4, 5],
   });
 
   // Try to init the annotation plugin (optional, graceful fallback)
